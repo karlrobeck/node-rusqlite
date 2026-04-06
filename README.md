@@ -127,11 +127,11 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
 
 **row**
 - default:
-  - [ ] get_unwrap()
-  - [ ] get()
-  - [ ] get_ref()
-  - [ ] get_ref_unwrap()
-  - [ ] get_pointer()
+  - [-] get_unwrap()
+  - [x] get()
+  - [-] get_ref()
+  - [-] get_ref_unwrap()
+  - [-] get_pointer()
 
 **transaction**
 - default:
