@@ -17,6 +17,10 @@ export declare class RusqliteConnection {
   static openInMemory(options?: RusqliteConnectionOptions | undefined | null): RusqliteConnection
 }
 
+export declare class RusqliteRow {
+  get(index: string | number): any
+}
+
 export interface RusqliteConnectionOptions {
   flags: number
   vfs?: string
