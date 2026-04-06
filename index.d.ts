@@ -18,7 +18,11 @@ export declare class RusqliteConnection {
 }
 
 export declare class RusqliteRow {
-  get(index: string | number): any
+  get(index: string | number): string | number | Uint8Array | null
+}
+
+export declare class RusqliteRows {
+
 }
 
 export interface RusqliteConnectionOptions {
