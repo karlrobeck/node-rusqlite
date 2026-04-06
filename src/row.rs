@@ -39,12 +39,13 @@ impl<'a> RusqliteRow<'a> {
   }
 }
 
-#[napi]
+#[napi(iterator)]
 pub struct RusqliteRows<'a> {
   pub(crate) rows: rusqlite::Rows<'a>,
   pub(crate) columns: Vec<String>,
 }
 
+#[napi]
 impl<'a> ScopedGenerator<'a> for RusqliteRows<'a> {
   type Next = ();
   type Return = ();

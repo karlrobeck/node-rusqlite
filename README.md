@@ -125,7 +125,7 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
   - [ ] readonly()
   - [ ] clear_bindings()
 
-**row**
+**row** (with iterator)
 - default:
   - [-] get_unwrap()
   - [x] get()

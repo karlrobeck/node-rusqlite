@@ -21,8 +21,16 @@ export declare class RusqliteRow {
   get(index: string | number): string | number | Uint8Array | null
 }
 
-export declare class RusqliteRows {
+/**
+ * This type extends JavaScript's `Iterator`, and so has the iterator helper
+ * methods. It may extend the upcoming TypeScript `Iterator` class in the future.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods
+ * @see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html#iterator-helper-methods
+ */
+export declare class RusqliteRows extends Iterator<object, void, void> {
 
+  next(value?: void): IteratorResult<object, void>
 }
 
 export interface RusqliteConnectionOptions {
