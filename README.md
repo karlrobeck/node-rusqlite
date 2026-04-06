@@ -124,3 +124,12 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
   - [ ] is_explain()
   - [ ] readonly()
   - [ ] clear_bindings()
+
+**row**
+- default
+  - [ ] get_unwrap()
+  - [ ] get()
+  - [ ] get_ref()
+  - [ ] get_ref_unwrap()
+  - [ ] get_pointer()
+
