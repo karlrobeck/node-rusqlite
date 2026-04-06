@@ -582,3 +582,4 @@ module.exports.RusqliteConnection = nativeBinding.RusqliteConnection
 module.exports.RusqliteRow = nativeBinding.RusqliteRow
 module.exports.RusqliteRows = nativeBinding.RusqliteRows
 module.exports.RusqliteStatement = nativeBinding.RusqliteStatement
+module.exports.RusqliteStatementStatus = nativeBinding.RusqliteStatementStatus

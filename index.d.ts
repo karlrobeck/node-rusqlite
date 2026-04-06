@@ -44,6 +44,16 @@ export declare class RusqliteStatement {
   execute(params?: unknown[] | undefined | null): number
   insert(params?: unknown[] | undefined | null): number
   query(params?: unknown[] | undefined | null): RusqliteRows
+  exists(params?: unknown[] | undefined | null): boolean
+  parameterIndex(name: string): number | null
+  parameterName(index: number): string | null
+  parameterCount(): number
+  expandedSql(): string | null
+  getStatus(status: RusqliteStatementStatus): number
+  resetStatus(status: RusqliteStatementStatus): number
+  isExplain(): number
+  readonly(): boolean
+  clearBindings(): void
 }
 
 export interface RusqliteConnectionOptions {
@@ -60,4 +70,16 @@ export interface RusqliteDetailedColumnMetadata {
   notNull: boolean
   primaryKey: boolean
   autoIncrement: boolean
+}
+
+export declare const enum RusqliteStatementStatus {
+  FullscanStep = 1,
+  Sort = 2,
+  AutoIndex = 3,
+  VmStep = 4,
+  RePrepare = 5,
+  Run = 6,
+  FilterMiss = 7,
+  FilterHit = 8,
+  MemUsed = 99
 }

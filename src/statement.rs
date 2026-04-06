@@ -259,4 +259,25 @@ impl<'a> RusqliteStatement<'a> {
   pub fn get_status(&self, status: RusqliteStatementStatus) -> napi::Result<i32> {
     Ok(self.statement.get_status(StatementStatus::from(status)))
   }
+
+  #[napi]
+  pub fn reset_status(&self, status: RusqliteStatementStatus) -> napi::Result<i32> {
+    Ok(self.statement.reset_status(StatementStatus::from(status)))
+  }
+
+  #[napi]
+  pub fn is_explain(&self) -> napi::Result<i32> {
+    Ok(self.statement.is_explain())
+  }
+
+  #[napi]
+  pub fn readonly(&self) -> napi::Result<bool> {
+    Ok(self.statement.readonly())
+  }
+
+  #[napi]
+  pub fn clear_bindings(&mut self) -> napi::Result<()> {
+    self.statement.clear_bindings();
+    Ok(())
+  }
 }
