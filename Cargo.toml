@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 [dependencies]
 napi = "3.0.0"
 napi-derive = "3.0.0"
-rusqlite = { version = "0.39.0", features = ["bundled"] }
+rusqlite = { version = "0.39.0", features = ["bundled","column_metadata","column_decltype"] }
 
 [build-dependencies]
 napi-build = "2"

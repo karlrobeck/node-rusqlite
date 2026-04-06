@@ -576,4 +576,6 @@ if (!nativeBinding) {
 }
 
 module.exports = nativeBinding
+module.exports.RusqliteColumn = nativeBinding.RusqliteColumn
+module.exports.RusqliteColumnMetadata = nativeBinding.RusqliteColumnMetadata
 module.exports.RusqliteConnection = nativeBinding.RusqliteConnection

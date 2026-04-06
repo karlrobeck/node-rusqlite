@@ -147,12 +147,12 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
 
 **column**
 - default:
-  - [ ] name()
-  - [ ] decl_type()
+  - [x] name()
+  - [x] decl_type()
 
 **column_metadata**
 - default:
-  - [ ] name()
-  - [ ] database_name()
-  - [ ] table_name()
-  - [ ] origin_name()
+  - [x] name()
+  - [x] database_name()
+  - [x] table_name()
+  - [x] origin_name()
