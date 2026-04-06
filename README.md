@@ -126,10 +126,21 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
   - [ ] clear_bindings()
 
 **row**
-- default
+- default:
   - [ ] get_unwrap()
   - [ ] get()
   - [ ] get_ref()
   - [ ] get_ref_unwrap()
   - [ ] get_pointer()
 
+**transaction**
+- default:
+  - new()
+  - new_unchecked()
+  - savepoint()
+  - savepoint_with_name()
+  - drop_behavior()
+  - set_drop_behavior()
+  - commit()
+  - rollback()
+  - finish()
