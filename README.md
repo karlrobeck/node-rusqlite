@@ -108,7 +108,7 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
   - [x] query()
   - [-] query_map()
   - [-] query_and_then()
-  - [ ] exists()
+  - [x] exists()
   - [-] query_row()
   - [-] query_one()
   - [x] finalize()
