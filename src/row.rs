@@ -8,7 +8,7 @@ use crate::errors::RusqliteError;
 
 #[napi]
 pub struct RusqliteRow<'a> {
-  row: rusqlite::Row<'a>,
+  pub(crate) row: rusqlite::Row<'a>,
 }
 
 #[napi]
