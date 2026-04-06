@@ -144,3 +144,15 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
   - [ ] commit()
   - [ ] rollback()
   - [ ] finish()
+
+**column**
+- default:
+  - [ ] name()
+  - [ ] decl_type()
+
+**column_metadata**
+- default:
+  - [ ] name()
+  - [ ] database_name()
+  - [ ] table_name()
+  - [ ] origin_name()
