@@ -33,7 +33,29 @@ export declare class RusqliteRows extends Iterator<object, void, void> {
   next(value?: void): IteratorResult<object, void>
 }
 
+export declare class RusqliteStatement {
+  columnNames(): Array<string>
+  columnCount(): number
+  columnName(col: number): string
+  columnIndex(name: string): number
+  columns(): Array<RusqliteColumn>
+  columnsWithMetadata(): Array<RusqliteColumnMetadata>
+  columnMetadata(col: number): RusqliteDetailedColumnMetadata | null
+  execute(params?: unknown[] | undefined | null): number
+}
+
 export interface RusqliteConnectionOptions {
   flags: number
   vfs?: string
+}
+
+export interface RusqliteDetailedColumnMetadata {
+  databaseName: string
+  tableName: string
+  columnName: string
+  type?: string
+  collationSequence?: string
+  notNull: boolean
+  primaryKey: boolean
+  autoIncrement: boolean
 }

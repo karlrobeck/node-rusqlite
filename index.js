@@ -581,3 +581,4 @@ module.exports.RusqliteColumnMetadata = nativeBinding.RusqliteColumnMetadata
 module.exports.RusqliteConnection = nativeBinding.RusqliteConnection
 module.exports.RusqliteRow = nativeBinding.RusqliteRow
 module.exports.RusqliteRows = nativeBinding.RusqliteRows
+module.exports.RusqliteStatement = nativeBinding.RusqliteStatement

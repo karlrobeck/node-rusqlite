@@ -1,0 +1,156 @@
+use napi::{bindgen_prelude::Array, Env, Unknown};
+use napi_derive::napi;
+use rusqlite::params_from_iter;
+
+use crate::{
+  column::{RusqliteColumn, RusqliteColumnMetadata},
+  errors::RusqliteError,
+  utils::napi_value_to_sql_param,
+};
+
+#[napi(object)]
+pub struct RusqliteDetailedColumnMetadata {
+  pub database_name: String,
+  pub table_name: String,
+  pub column_name: String,
+  pub r#type: Option<String>,
+  pub collation_sequence: Option<String>,
+  pub not_null: bool,
+  pub primary_key: bool,
+  pub auto_increment: bool,
+}
+
+#[napi]
+pub struct RusqliteStatement<'a> {
+  pub(crate) statement: rusqlite::Statement<'a>,
+}
+
+#[napi]
+impl<'a> RusqliteStatement<'a> {
+  #[napi]
+  pub fn column_names(&self) -> napi::Result<Vec<String>> {
+    Ok(
+      self
+        .statement
+        .column_names()
+        .iter()
+        .map(|row| row.to_string())
+        .collect::<Vec<_>>(),
+    )
+  }
+
+  #[napi]
+  pub fn column_count(&self) -> napi::Result<i64> {
+    Ok(self.statement.column_count() as i64)
+  }
+
+  #[napi]
+  pub fn column_name(&self, col: i64) -> napi::Result<String> {
+    Ok(
+      self
+        .statement
+        .column_name(col as usize)
+        .map_err(RusqliteError::from)?
+        .to_string(),
+    )
+  }
+
+  #[napi]
+  pub fn column_index(&self, name: String) -> napi::Result<i64> {
+    Ok(
+      self
+        .statement
+        .column_index(&name)
+        .map_err(RusqliteError::from)? as i64,
+    )
+  }
+
+  #[napi]
+  pub fn columns(&'a self) -> napi::Result<Vec<RusqliteColumn<'a>>> {
+    Ok(
+      self
+        .statement
+        .columns()
+        .into_iter()
+        .map(|col| RusqliteColumn { column: col })
+        .collect::<Vec<_>>(),
+    )
+  }
+
+  #[napi]
+  pub fn columns_with_metadata(&'a self) -> napi::Result<Vec<RusqliteColumnMetadata<'a>>> {
+    Ok(
+      self
+        .statement
+        .columns_with_metadata()
+        .into_iter()
+        .map(|metadata| RusqliteColumnMetadata { metadata })
+        .collect::<Vec<_>>(),
+    )
+  }
+
+  #[napi]
+  pub fn column_metadata(
+    &'a self,
+    col: i64,
+  ) -> napi::Result<Option<RusqliteDetailedColumnMetadata>> {
+    Ok(
+      self
+        .statement
+        .column_metadata(col as usize)
+        .map_err(RusqliteError::from)?
+        .map(|value| RusqliteDetailedColumnMetadata {
+          database_name: value.0.to_str().unwrap().to_string(),
+          table_name: value.1.to_str().unwrap().to_string(),
+          column_name: value.2.to_string_lossy().to_string(),
+          collation_sequence: value.3.map(|v| v.to_string_lossy().to_string()),
+          r#type: value.4.map(|v| v.to_string_lossy().to_string()),
+          not_null: value.5,
+          primary_key: value.6,
+          auto_increment: value.7,
+        }),
+    )
+  }
+
+  #[napi]
+  pub fn execute(&mut self, env: Env, params: Option<Array>) -> napi::Result<i64> {
+    let params = params.unwrap_or(env.create_array(0)?);
+
+    let length = params.len();
+
+    let mut sql_params = vec![];
+
+    for index in 0..length {
+      let value = params.get::<Unknown>(index)?.unwrap();
+      sql_params.push(napi_value_to_sql_param(&env, value)?);
+    }
+
+    let result = self
+      .statement
+      .execute(params_from_iter(sql_params.iter()))
+      .map_err(RusqliteError::from)?;
+
+    Ok(result as i64)
+  }
+
+  #[napi]
+  pub fn insert(&mut self, env: Env, params: Option<Array>) -> napi::Result<i64> {
+    let params = params.unwrap_or(env.create_array(0)?);
+
+    let length = params.len();
+
+    let mut sql_params = vec![];
+
+    for index in 0..length {
+      let value = params.get::<Unknown>(index)?.unwrap();
+      sql_params.push(napi_value_to_sql_param(&env, value)?);
+    }
+
+    let result = self
+      .statement
+      .insert(params_from_iter(sql_params.iter()))
+      .map_err(RusqliteError::from)?;
+
+    Ok(result)
+  }
+}
