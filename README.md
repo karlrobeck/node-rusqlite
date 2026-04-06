@@ -77,7 +77,7 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
   - [ ] query_row_and_then()
   - [ ] prepare()
   - [ ] prepare_with_flags()
-  - [ ] close()
+  - [x] close()
   - [ ] load_extension_enable()
   - [ ] load_extension_disable()
   - [ ] load_extension()
