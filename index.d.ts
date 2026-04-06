@@ -42,6 +42,8 @@ export declare class RusqliteStatement {
   columnsWithMetadata(): Array<RusqliteColumnMetadata>
   columnMetadata(col: number): RusqliteDetailedColumnMetadata | null
   execute(params?: unknown[] | undefined | null): number
+  insert(params?: unknown[] | undefined | null): number
+  query(params?: unknown[] | undefined | null): RusqliteRows
 }
 
 export interface RusqliteConnectionOptions {

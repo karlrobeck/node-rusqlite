@@ -5,6 +5,7 @@ use rusqlite::params_from_iter;
 use crate::{
   column::{RusqliteColumn, RusqliteColumnMetadata},
   errors::RusqliteError,
+  row::RusqliteRows,
   utils::napi_value_to_sql_param,
 };
 
@@ -152,5 +153,28 @@ impl<'a> RusqliteStatement<'a> {
       .map_err(RusqliteError::from)?;
 
     Ok(result)
+  }
+
+  #[napi]
+  pub fn query(&'a mut self, env: Env, params: Option<Array>) -> napi::Result<RusqliteRows<'a>> {
+    let params = params.unwrap_or(env.create_array(0)?);
+
+    let length = params.len();
+
+    let columns = self.column_names()?;
+
+    let mut sql_params = vec![];
+
+    for index in 0..length {
+      let value = params.get::<Unknown>(index)?.unwrap();
+      sql_params.push(napi_value_to_sql_param(&env, value)?);
+    }
+
+    let rows = self
+      .statement
+      .query(params_from_iter(sql_params.iter()))
+      .map_err(RusqliteError::from)?;
+
+    Ok(RusqliteRows { rows, columns })
   }
 }
