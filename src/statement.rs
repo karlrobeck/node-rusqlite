@@ -1,13 +1,42 @@
-use napi::{bindgen_prelude::Array, Env, Unknown};
+use napi::{bindgen_prelude::Array, threadsafe_function::ThreadsafeFunction, Env, Unknown};
 use napi_derive::napi;
-use rusqlite::params_from_iter;
+use rusqlite::{params_from_iter, StatementStatus};
 
 use crate::{
   column::{RusqliteColumn, RusqliteColumnMetadata},
   errors::RusqliteError,
-  row::RusqliteRows,
+  row::{RusqliteRow, RusqliteRows},
   utils::napi_value_to_sql_param,
 };
+
+#[napi]
+pub enum RusqliteStatementStatus {
+  FullscanStep = 1,
+  Sort = 2,
+  AutoIndex = 3,
+  VmStep = 4,
+  RePrepare = 5,
+  Run = 6,
+  FilterMiss = 7,
+  FilterHit = 8,
+  MemUsed = 99,
+}
+
+impl From<RusqliteStatementStatus> for StatementStatus {
+  fn from(value: RusqliteStatementStatus) -> Self {
+    match value {
+      RusqliteStatementStatus::FullscanStep => StatementStatus::AutoIndex,
+      RusqliteStatementStatus::Sort => StatementStatus::Sort,
+      RusqliteStatementStatus::AutoIndex => StatementStatus::AutoIndex,
+      RusqliteStatementStatus::VmStep => StatementStatus::VmStep,
+      RusqliteStatementStatus::RePrepare => StatementStatus::RePrepare,
+      RusqliteStatementStatus::Run => StatementStatus::Run,
+      RusqliteStatementStatus::FilterMiss => StatementStatus::FilterMiss,
+      RusqliteStatementStatus::FilterHit => StatementStatus::FilterHit,
+      RusqliteStatementStatus::MemUsed => StatementStatus::MemUsed,
+    }
+  }
+}
 
 #[napi(object)]
 pub struct RusqliteDetailedColumnMetadata {
@@ -176,5 +205,58 @@ impl<'a> RusqliteStatement<'a> {
       .map_err(RusqliteError::from)?;
 
     Ok(RusqliteRows { rows, columns })
+  }
+
+  #[napi]
+  pub fn exists(&mut self, env: Env, params: Option<Array>) -> napi::Result<bool> {
+    let params = params.unwrap_or(env.create_array(0)?);
+
+    let length = params.len();
+
+    let mut sql_params = vec![];
+
+    for index in 0..length {
+      let value = params.get::<Unknown>(index)?.unwrap();
+      sql_params.push(napi_value_to_sql_param(&env, value)?);
+    }
+
+    let result = self
+      .statement
+      .exists(params_from_iter(sql_params.iter()))
+      .map_err(RusqliteError::from)?;
+
+    Ok(result)
+  }
+
+  #[napi]
+  pub fn parameter_index(&self, name: String) -> napi::Result<Option<i64>> {
+    let index = self
+      .statement
+      .parameter_index(&name)
+      .map_err(RusqliteError::from)?;
+
+    Ok(index.map(|v| v as i64))
+  }
+
+  #[napi]
+  pub fn parameter_name(&self, index: i64) -> napi::Result<Option<String>> {
+    let index = self.statement.parameter_name(index as usize);
+
+    Ok(index.map(|v| v.to_string()))
+  }
+
+  #[napi]
+  pub fn parameter_count(&self) -> napi::Result<i64> {
+    Ok(self.statement.parameter_count() as i64)
+  }
+
+  #[napi]
+  pub fn expanded_sql(&self) -> napi::Result<Option<String>> {
+    Ok(self.statement.expanded_sql())
+  }
+
+  #[napi]
+  pub fn get_status(&self, status: RusqliteStatementStatus) -> napi::Result<i32> {
+    Ok(self.statement.get_status(StatementStatus::from(status)))
   }
 }
