@@ -135,15 +135,15 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
 
 **transaction**
 - default:
-  - [ ] new()
-  - [ ] new_unchecked()
-  - [ ] savepoint()
-  - [ ] savepoint_with_name()
-  - [ ] drop_behavior()
-  - [ ] set_drop_behavior()
-  - [ ] commit()
-  - [ ] rollback()
-  - [ ] finish()
+  - [-] new()
+  - [-] new_unchecked()
+  - [x] savepoint()
+  - [x] savepoint_with_name()
+  - [x] drop_behavior()
+  - [x] set_drop_behavior()
+  - [x] commit()
+  - [x] rollback()
+  - [x] finish()
 
 **column**
 - default:
