@@ -1,12 +1,8 @@
 use std::collections::HashMap;
 
-use napi::{
-  bindgen_prelude::{Buffer, Either5, Null, Object},
-  iterator::{Generator, ScopedGenerator},
-  Either,
-};
+use napi::{iterator::Generator, Either};
 use napi_derive::napi;
-use rusqlite::types::{Type, ValueRef};
+use rusqlite::types::ValueRef;
 use serde::Serialize;
 
 use crate::errors::RusqliteError;
@@ -24,7 +20,6 @@ impl Serialize for RusqliteValueRef<'_> {
       ValueRef::Blob(bytes) => serializer.serialize_bytes(bytes),
       ValueRef::Text(string) => serializer.serialize_str(core::str::from_utf8(string).unwrap()),
       ValueRef::Null => serializer.serialize_none(),
-      _ => panic!(""),
     }
   }
 }
@@ -34,31 +29,16 @@ pub struct RusqliteRow<'a> {
   pub(crate) row: &'a rusqlite::Row<'a>,
 }
 
-fn to_raw_bytes(value: ValueRef<'_>, r#type: Type) -> Vec<u8> {
-  let bytes = match r#type {
-    rusqlite::types::Type::Text => value.as_str().unwrap().as_bytes().to_vec(),
-    rusqlite::types::Type::Integer => value.as_i64().unwrap().to_be_bytes().to_vec(),
-    rusqlite::types::Type::Real => value.as_i64().unwrap().to_be_bytes().to_vec(),
-    rusqlite::types::Type::Blob => value.as_blob().unwrap().to_vec(),
-    rusqlite::types::Type::Null => b"\0".to_vec(),
-  };
-
-  bytes
-}
-
 #[napi]
 impl<'a> RusqliteRow<'a> {
-  #[napi(ts_return_type = "string | number | Uint8Array | null")]
-  pub fn get(&self, index: Either<String, i64>) -> napi::Result<Buffer> {
+  pub fn get(&self, index: Either<String, i64>) -> napi::Result<String> {
     let result = match index {
       Either::A(string) => self.row.get_ref(&*string),
       Either::B(number) => self.row.get_ref(number as usize),
     }
     .map_err(RusqliteError::from)?;
 
-    let r#type = result.data_type();
-
-    Ok(to_raw_bytes(result, r#type).into())
+    Ok(serde_json::to_string(&RusqliteValueRef(result)).unwrap())
   }
 }
 
