@@ -580,7 +580,6 @@ module.exports.RusqliteColumn = nativeBinding.RusqliteColumn
 module.exports.RusqliteColumnMetadata = nativeBinding.RusqliteColumnMetadata
 module.exports.RusqliteConnection = nativeBinding.RusqliteConnection
 module.exports.RusqliteInterruptHandle = nativeBinding.RusqliteInterruptHandle
-module.exports.RusqliteRow = nativeBinding.RusqliteRow
 module.exports.RusqliteRows = nativeBinding.RusqliteRows
 module.exports.RusqliteSavepoint = nativeBinding.RusqliteSavepoint
 module.exports.RusqliteStatement = nativeBinding.RusqliteStatement

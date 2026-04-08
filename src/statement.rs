@@ -131,22 +131,35 @@ impl<'a> RusqliteStatement<'a> {
     &'a self,
     col: i64,
   ) -> napi::Result<Option<RusqliteDetailedColumnMetadata>> {
-    Ok(
-      self
-        .statement
-        .column_metadata(col as usize)
-        .map_err(RusqliteError::from)?
-        .map(|value| RusqliteDetailedColumnMetadata {
-          database_name: value.0.to_str().unwrap().to_string(),
-          table_name: value.1.to_str().unwrap().to_string(),
-          column_name: value.2.to_string_lossy().to_string(),
-          collation_sequence: value.3.map(|v| v.to_string_lossy().to_string()),
-          r#type: value.4.map(|v| v.to_string_lossy().to_string()),
-          not_null: value.5,
-          primary_key: value.6,
-          auto_increment: value.7,
-        }),
-    )
+    let metadata = self
+      .statement
+      .column_metadata(col as usize)
+      .map_err(RusqliteError::from)?;
+
+    if let Some(metadata) = metadata {
+      let metadata = RusqliteDetailedColumnMetadata {
+        database_name: metadata
+          .0
+          .to_str()
+          .map_err(|err| RusqliteError(rusqlite::Error::Utf8Error(0, err)))?
+          .to_string(),
+        table_name: metadata
+          .1
+          .to_str()
+          .map_err(|err| RusqliteError(rusqlite::Error::Utf8Error(0, err)))?
+          .to_string(),
+        column_name: metadata.2.to_string_lossy().to_string(),
+        collation_sequence: metadata.3.map(|v| v.to_string_lossy().to_string()),
+        r#type: metadata.4.map(|v| v.to_string_lossy().to_string()),
+        not_null: metadata.5,
+        primary_key: metadata.6,
+        auto_increment: metadata.7,
+      };
+
+      Ok(Some(metadata))
+    } else {
+      Ok(None)
+    }
   }
 
   #[napi]

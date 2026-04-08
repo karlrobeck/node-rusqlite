@@ -1,12 +1,7 @@
-use std::{
-  collections::HashMap,
-  sync::{Arc, Mutex, RwLock},
-  thread,
-  time::Duration,
-};
+use std::{collections::HashMap, sync::Arc, thread, time::Duration};
 
 use napi::{
-  bindgen_prelude::{Array, Buffer, External, ObjectFinalize},
+  bindgen_prelude::{Buffer, ObjectFinalize},
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   Env, Unknown,
 };
@@ -345,7 +340,6 @@ impl RusqliteConnection {
   #[napi]
   pub fn pragma(
     &self,
-    env: Env,
     schema_name: Option<String>,
     pragma_name: String,
     pragma_value: Unknown,
@@ -388,7 +382,6 @@ impl RusqliteConnection {
   #[napi]
   pub fn pragma_update(
     &self,
-    env: Env,
     schema_name: Option<String>,
     pragma_name: String,
     pragma_value: Unknown,
@@ -413,7 +406,6 @@ impl RusqliteConnection {
   #[napi]
   pub fn pragma_update_and_check(
     &self,
-    env: Env,
     schema_name: Option<String>,
     pragma_name: String,
     pragma_value: Unknown,
@@ -474,16 +466,24 @@ impl RusqliteConnection {
   #[napi]
   pub fn savepoint(&mut self) -> napi::Result<RusqliteSavepoint<'_>> {
     let savepoint = self.connection.savepoint().map_err(RusqliteError::from)?;
-    Ok(RusqliteSavepoint { savepoint })
+    Ok(RusqliteSavepoint {
+      savepoint,
+      name: None,
+      commited: false,
+    })
   }
 
   #[napi]
   pub fn savepoint_with_name(&mut self, name: String) -> napi::Result<RusqliteSavepoint<'_>> {
     let savepoint = self
       .connection
-      .savepoint_with_name(name)
+      .savepoint_with_name(name.clone())
       .map_err(RusqliteError::from)?;
-    Ok(RusqliteSavepoint { savepoint })
+    Ok(RusqliteSavepoint {
+      savepoint,
+      name: Some(name),
+      commited: false,
+    })
   }
 
   #[napi]
@@ -518,7 +518,7 @@ impl RusqliteConnection {
   }
 
   #[napi]
-  pub fn execute(&self, env: Env, sql: String, sql_params: Vec<Unknown>) -> napi::Result<i64> {
+  pub fn execute(&self, sql: String, sql_params: Vec<Unknown>) -> napi::Result<i64> {
     let sql_values = sql_params
       .into_iter()
       .map(|param| napi_value_to_sql_param(param))
@@ -552,7 +552,7 @@ impl RusqliteConnection {
   }
 
   #[napi]
-  pub fn query_row(&self, env: Env, sql: String, sql_params: Vec<Unknown>) -> napi::Result<String> {
+  pub fn query_row(&self, sql: String, sql_params: Vec<Unknown>) -> napi::Result<String> {
     let sql_params = sql_params
       .into_iter()
       .map(|param| napi_value_to_sql_param(param))
@@ -585,7 +585,7 @@ impl RusqliteConnection {
   }
 
   #[napi]
-  pub fn query_one(&self, env: Env, sql: String, sql_params: Vec<Unknown>) -> napi::Result<String> {
+  pub fn query_one(&self, sql: String, sql_params: Vec<Unknown>) -> napi::Result<String> {
     let sql_params = sql_params
       .into_iter()
       .map(|param| napi_value_to_sql_param(param))

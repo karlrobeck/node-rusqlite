@@ -3,7 +3,7 @@ use std::sync::Arc;
 use napi_derive::napi;
 use rusqlite::Transaction;
 
-use crate::errors::RusqliteError;
+use crate::{connection::RusqliteConnection, errors::RusqliteError};
 
 #[napi]
 pub enum RusqliteTransactionState {
@@ -70,16 +70,24 @@ impl RusqliteTransaction<'_> {
   #[napi]
   pub fn savepoint(&mut self) -> napi::Result<RusqliteSavepoint<'_>> {
     let savepoint = self.transaction.savepoint().map_err(RusqliteError::from)?;
-    Ok(RusqliteSavepoint { savepoint })
+    Ok(RusqliteSavepoint {
+      savepoint,
+      name: None,
+      commited: false,
+    })
   }
 
   #[napi]
   pub fn savepoint_with_name(&mut self, name: String) -> napi::Result<RusqliteSavepoint<'_>> {
     let savepoint = self
       .transaction
-      .savepoint_with_name(name)
+      .savepoint_with_name(name.clone())
       .map_err(RusqliteError::from)?;
-    Ok(RusqliteSavepoint { savepoint })
+    Ok(RusqliteSavepoint {
+      savepoint,
+      name: Some(name),
+      commited: false,
+    })
   }
 
   #[napi]
@@ -132,4 +140,86 @@ impl RusqliteTransaction<'_> {
 #[napi]
 pub struct RusqliteSavepoint<'a> {
   pub(crate) savepoint: rusqlite::Savepoint<'a>,
+  pub(crate) name: Option<String>,
+  pub(crate) commited: bool,
+}
+
+#[napi]
+impl RusqliteSavepoint<'_> {
+  #[napi]
+  pub fn savepoint(&mut self) -> napi::Result<RusqliteSavepoint<'_>> {
+    let savepoint = self.savepoint.savepoint().map_err(RusqliteError::from)?;
+    Ok(RusqliteSavepoint {
+      savepoint,
+      name: self.name.clone(),
+      commited: self.commited,
+    })
+  }
+
+  #[napi]
+  pub fn savepoint_with_name(&mut self, name: String) -> napi::Result<RusqliteSavepoint<'_>> {
+    let savepoint = self
+      .savepoint
+      .savepoint_with_name(name.clone())
+      .map_err(RusqliteError::from)?;
+    Ok(RusqliteSavepoint {
+      savepoint,
+      name: Some(name),
+      commited: self.commited,
+    })
+  }
+
+  #[napi]
+  pub fn drop_behavior(&self) -> napi::Result<DropBehavior> {
+    let behavior = match self.savepoint.drop_behavior() {
+      rusqlite::DropBehavior::Commit => DropBehavior::Commit,
+      rusqlite::DropBehavior::Ignore => DropBehavior::Ignore,
+      rusqlite::DropBehavior::Panic => DropBehavior::Panic,
+      rusqlite::DropBehavior::Rollback => DropBehavior::Rollback,
+      _ => panic!("undefined behavior"),
+    };
+
+    Ok(behavior)
+  }
+
+  #[napi]
+  pub fn set_drop_behavior(&mut self, drop_behavior: DropBehavior) -> napi::Result<()> {
+    self.savepoint.set_drop_behavior(drop_behavior.into());
+    Ok(())
+  }
+
+  #[napi]
+  pub fn commit(&mut self) -> napi::Result<()> {
+    self
+      .savepoint
+      .execute_batch(&format!(
+        "RELEASE {}",
+        self.name.as_ref().unwrap_or(&String::new())
+      ))
+      .map_err(RusqliteError::from)?;
+    self.commited = true;
+    Ok(())
+  }
+
+  #[napi]
+  pub fn rollback(&mut self) -> napi::Result<()> {
+    self.savepoint.rollback().map_err(RusqliteError::from)?;
+    Ok(())
+  }
+
+  #[napi]
+  pub fn finish(&mut self) -> napi::Result<()> {
+    if self.commited {
+      return Ok(());
+    }
+
+    match self.drop_behavior()? {
+      DropBehavior::Commit => self
+        .commit()
+        .or_else(|_| self.rollback().and_then(|()| self.commit())),
+      DropBehavior::Ignore => Ok(()),
+      DropBehavior::Panic => panic!("savepoint was not committed or rolled back"),
+      DropBehavior::Rollback => self.rollback().and_then(|()| self.commit()),
+    }
+  }
 }

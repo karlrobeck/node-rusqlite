@@ -59,10 +59,6 @@ export declare class RusqliteInterruptHandle {
   interrupt(): void
 }
 
-export declare class RusqliteRow {
-
-}
-
 /**
  * This type extends JavaScript's `Iterator`, and so has the iterator helper
  * methods. It may extend the upcoming TypeScript `Iterator` class in the future.
@@ -70,13 +66,19 @@ export declare class RusqliteRow {
  * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods
  * @see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html#iterator-helper-methods
  */
-export declare class RusqliteRows extends Iterator<string, void, void> {
+export declare class RusqliteRows extends Iterator<Buffer, void, void> {
 
-  next(value?: void): IteratorResult<string, void>
+  next(value?: void): IteratorResult<Buffer, void>
 }
 
 export declare class RusqliteSavepoint {
-
+  savepoint(): RusqliteSavepoint
+  savepointWithName(name: string): RusqliteSavepoint
+  dropBehavior(): DropBehavior
+  setDropBehavior(dropBehavior: DropBehavior): void
+  commit(): void
+  rollback(): void
+  finish(): void
 }
 
 export declare class RusqliteStatement {
