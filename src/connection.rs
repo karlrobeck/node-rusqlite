@@ -98,7 +98,7 @@ pub struct RusqliteConnectionOptions {
 
 #[napi]
 pub struct RusqliteInterruptHandle {
-  handle: InterruptHandle,
+  pub(crate) handle: InterruptHandle,
 }
 
 #[napi]

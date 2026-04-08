@@ -79,6 +79,38 @@ export declare class RusqliteSavepoint {
   commit(): void
   rollback(): void
   finish(): void
+  backup(name: string, dstPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
+  restore(name: string, srcPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
+  columnExists(dbName: string | undefined | null, tableName: string, columnName: string): boolean
+  tableExists(dbName: string | undefined | null, tableName: string): boolean
+  columnMetadata(dbName: string | undefined | null, tableName: string, columnName: string): RusqliteConnectionColumnMetadata
+  dbConfig(config: RusqliteDbConfig): void
+  setDbConfig(config: RusqliteDbConfig, on: boolean): void
+  pragmaQueryValue(schemaName: string | undefined | null, pragmaName: string): Buffer
+  pragmaQuery(schemaName: string | undefined | null, pragmaName: string): Buffer
+  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array, callback: ((err: Error | null, arg: Buffer) => any)): void
+  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): void
+  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): Buffer
+  uncheckedTransaction(): RusqliteTransaction
+  transactionState(dbName?: string | undefined | null): RusqliteTransactionState
+  executeBatch(sql: string): void
+  execute(sql: string, sqlParams: Uint8Array): number
+  path(): string
+  releaseMemory(): void
+  lastInsertRowid(): number
+  queryRow(sql: string, sqlParams: Uint8Array): Buffer
+  queryOne(sql: string, sqlParams: Uint8Array): Buffer
+  prepare(sql: string): RusqliteStatement
+  prepareWithFlags(sql: string, flags: RusqlitePrepFlags): RusqliteStatement
+  getInterruptHandle(): RusqliteInterruptHandle
+  changes(): number
+  totalChanges(): number
+  isAutocommit(): boolean
+  isBusy(): boolean
+  cacheFlush(): void
+  isReadonly(dbName: string): boolean
+  dbName(index: number): string
+  isInterrupted(): boolean
 
 }
 
@@ -115,7 +147,38 @@ export declare class RusqliteTransaction {
   commit(): void
   rollback(): void
   finish(): void
-
+  backup(name: string, dstPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
+  restore(name: string, srcPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
+  columnExists(dbName: string | undefined | null, tableName: string, columnName: string): boolean
+  tableExists(dbName: string | undefined | null, tableName: string): boolean
+  columnMetadata(dbName: string | undefined | null, tableName: string, columnName: string): RusqliteConnectionColumnMetadata
+  dbConfig(config: RusqliteDbConfig): void
+  setDbConfig(config: RusqliteDbConfig, on: boolean): void
+  pragmaQueryValue(schemaName: string | undefined | null, pragmaName: string): Buffer
+  pragmaQuery(schemaName: string | undefined | null, pragmaName: string): Buffer
+  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array, callback: ((err: Error | null, arg: Buffer) => any)): void
+  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): void
+  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): Buffer
+  uncheckedTransaction(): RusqliteTransaction
+  transactionState(dbName?: string | undefined | null): RusqliteTransactionState
+  executeBatch(sql: string): void
+  execute(sql: string, sqlParams: Uint8Array): number
+  path(): string
+  releaseMemory(): void
+  lastInsertRowid(): number
+  queryRow(sql: string, sqlParams: Uint8Array): Buffer
+  queryOne(sql: string, sqlParams: Uint8Array): Buffer
+  prepare(sql: string): RusqliteStatement
+  prepareWithFlags(sql: string, flags: RusqlitePrepFlags): RusqliteStatement
+  getInterruptHandle(): RusqliteInterruptHandle
+  changes(): number
+  totalChanges(): number
+  isAutocommit(): boolean
+  isBusy(): boolean
+  cacheFlush(): void
+  isReadonly(dbName: string): boolean
+  dbName(index: number): string
+  isInterrupted(): boolean
 
 }
 
