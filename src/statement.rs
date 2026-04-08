@@ -22,6 +22,13 @@ pub enum RusqliteStatementStatus {
   MemUsed = 99,
 }
 
+#[napi]
+pub enum RusqlitePrepFlags {
+  SqlitePreparePersistent = 0x01,
+  SqlitePrepareNoVtab = 0x04,
+  SqlitePrepareDontLog = 0x10,
+}
+
 impl From<RusqliteStatementStatus> for StatementStatus {
   fn from(value: RusqliteStatementStatus) -> Self {
     match value {

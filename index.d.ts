@@ -17,7 +17,6 @@ export declare class RusqliteConnection {
   static openInMemory(options?: RusqliteConnectionOptions | undefined | null): RusqliteConnection
   backup(name: string, dstPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
   restore(name: string, srcPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
-  prepare(sql: string): RusqliteStatement
   columnExists(dbName: string | undefined | null, tableName: string, columnName: string): boolean
   tableExists(dbName: string | undefined | null, tableName: string): boolean
   columnMetadata(dbName: string | undefined | null, tableName: string, columnName: string): RusqliteConnectionColumnMetadata
@@ -37,7 +36,27 @@ export declare class RusqliteConnection {
   setTransactionBehavior(behavior: RusqliteTransactionBehavior): void
   executeBatch(sql: string): void
   execute(sql: string, sqlParams: Array<unknown>): number
+  path(): string
+  releaseMemory(): void
+  lastInsertRowid(): number
+  queryRow(sql: string, sqlParams: Array<unknown>): string
+  queryOne(sql: string, sqlParams: Array<unknown>): string
+  prepare(sql: string): RusqliteStatement
+  prepareWithFlags(sql: string, flags: RusqlitePrepFlags): RusqliteStatement
+  getInterruptHandle(): RusqliteInterruptHandle
+  changes(): number
+  totalChanges(): number
+  isAutocommit(): boolean
+  isBusy(): boolean
+  cacheFlush(): void
+  isReadonly(dbName: string): boolean
+  dbName(index: number): string
+  isInterrupted(): boolean
 
+}
+
+export declare class RusqliteInterruptHandle {
+  interrupt(): void
 }
 
 export declare class RusqliteRow {
@@ -150,6 +169,12 @@ export interface RusqliteDetailedColumnMetadata {
   notNull: boolean
   primaryKey: boolean
   autoIncrement: boolean
+}
+
+export declare const enum RusqlitePrepFlags {
+  SqlitePreparePersistent = 1,
+  SqlitePrepareNoVtab = 4,
+  SqlitePrepareDontLog = 16
 }
 
 export declare const enum RusqliteStatementStatus {

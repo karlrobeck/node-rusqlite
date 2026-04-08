@@ -6,21 +6,21 @@ use std::{
 };
 
 use napi::{
-  bindgen_prelude::{Array, Buffer, ObjectFinalize},
+  bindgen_prelude::{Array, Buffer, External, ObjectFinalize},
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   Env, Unknown,
 };
 use napi_derive::napi;
 use rusqlite::{
   backup::{Backup, StepResult},
-  params_from_iter, Connection,
+  params_from_iter, Connection, InterruptHandle, PrepFlags,
 };
 
 use crate::{
   column::RusqliteConnectionColumnMetadata,
   errors::RusqliteError,
-  row::{RusqliteRow, RusqliteValueRef},
-  statement::{RusqliteDetailedColumnMetadata, RusqliteStatement},
+  row::RusqliteValueRef,
+  statement::{RusqlitePrepFlags, RusqliteStatement},
   transaction::{
     RusqliteSavepoint, RusqliteTransaction, RusqliteTransactionBehavior, RusqliteTransactionState,
   },
@@ -101,8 +101,17 @@ pub struct RusqliteConnectionOptions {
   pub vfs: Option<String>,
 }
 
-fn progress_callback(progress: Progress, callback: ThreadsafeFunction<Progress>) {
-  callback.call(Ok(progress), ThreadsafeFunctionCallMode::NonBlocking);
+#[napi]
+pub struct RusqliteInterruptHandle {
+  handle: InterruptHandle,
+}
+
+#[napi]
+impl RusqliteInterruptHandle {
+  #[napi]
+  pub fn interrupt(&self) {
+    self.handle.interrupt();
+  }
 }
 
 #[napi]
@@ -200,12 +209,6 @@ impl RusqliteConnection {
     }
 
     Ok(())
-  }
-
-  #[napi]
-  pub fn prepare(&self, sql: String) -> napi::Result<RusqliteStatement<'_>> {
-    let statement = self.connection.prepare(&sql).map_err(RusqliteError::from)?;
-    Ok(RusqliteStatement { statement })
   }
 
   #[napi]
@@ -612,6 +615,82 @@ impl RusqliteConnection {
       .map_err(RusqliteError::from)?;
 
     Ok(row)
+  }
+
+  #[napi]
+  pub fn prepare(&self, sql: String) -> napi::Result<RusqliteStatement<'_>> {
+    let statement = self.connection.prepare(&sql).map_err(RusqliteError::from)?;
+    Ok(RusqliteStatement { statement })
+  }
+
+  #[napi]
+  pub fn prepare_with_flags(
+    &self,
+    sql: String,
+    flags: RusqlitePrepFlags,
+  ) -> napi::Result<RusqliteStatement<'_>> {
+    let statement = self
+      .connection
+      .prepare_with_flags(&sql, PrepFlags::from_bits(flags as u32).unwrap())
+      .map_err(RusqliteError::from)?;
+    Ok(RusqliteStatement { statement })
+  }
+
+  #[napi]
+  pub fn get_interrupt_handle(&self) -> napi::Result<RusqliteInterruptHandle> {
+    let handle = self.connection.get_interrupt_handle();
+    Ok(RusqliteInterruptHandle { handle })
+  }
+
+  #[napi]
+  pub fn changes(&self) -> napi::Result<i64> {
+    Ok(self.connection.changes() as i64)
+  }
+
+  #[napi]
+  pub fn total_changes(&self) -> napi::Result<i64> {
+    Ok(self.connection.total_changes() as i64)
+  }
+
+  #[napi]
+  pub fn is_autocommit(&self) -> napi::Result<bool> {
+    Ok(self.connection.is_autocommit())
+  }
+
+  #[napi]
+  pub fn is_busy(&self) -> napi::Result<bool> {
+    Ok(self.connection.is_busy())
+  }
+
+  #[napi]
+  pub fn cache_flush(&self) -> napi::Result<()> {
+    self.connection.cache_flush().map_err(RusqliteError::from)?;
+    Ok(())
+  }
+
+  #[napi]
+  pub fn is_readonly(&self, db_name: String) -> napi::Result<bool> {
+    Ok(
+      self
+        .connection
+        .is_readonly(&*db_name)
+        .map_err(RusqliteError::from)?,
+    )
+  }
+
+  #[napi]
+  pub fn db_name(&self, index: i32) -> napi::Result<String> {
+    Ok(
+      self
+        .connection
+        .db_name(index as usize)
+        .map_err(RusqliteError::from)?,
+    )
+  }
+
+  #[napi]
+  pub fn is_interrupted(&self) -> napi::Result<bool> {
+    Ok(self.connection.is_interrupted())
   }
 }
 

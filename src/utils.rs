@@ -9,7 +9,7 @@ pub fn napi_value_to_sql_param(env: &Env, value: Unknown) -> napi::Result<impl T
 
   let value = match r#type {
     napi::ValueType::Boolean => {
-      if value.coerce_to_bool()? == true {
+      if value.coerce_to_bool()? {
         Value::Integer(1)
       } else {
         Value::Integer(0)
