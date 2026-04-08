@@ -555,29 +555,30 @@ impl RusqliteConnection {
       .map(|param| napi_value_to_sql_param(&env, param))
       .collect::<napi::Result<Vec<_>>>()?;
 
-    let mut stmt = self.connection.prepare(&sql).map_err(RusqliteError::from)?;
+    let stmt = self.connection.prepare(&sql).map_err(RusqliteError::from)?;
 
-    let column_count = stmt.column_count();
+    let columns = stmt
+      .columns()
+      .iter()
+      .map(|col| col.name().to_string())
+      .collect::<Vec<_>>();
 
-    let column_names: Vec<String> = (0..column_count)
-      .map(|index| stmt.column_name(index).unwrap().to_string())
-      .collect();
+    let row = self
+      .connection
+      .query_row(&sql, params_from_iter(sql_params.iter()), |row| {
+        let mut row_map = HashMap::new();
 
-    let mut rows = stmt
-      .query(params_from_iter(sql_params.iter()))
+        for column in columns {
+          let value_ref = row.get_ref(&*column).unwrap();
+          let value = RusqliteValueRef(value_ref);
+          row_map.insert(column, value);
+        }
+
+        Ok(serde_json::to_string(&row_map).unwrap())
+      })
       .map_err(RusqliteError::from)?;
 
-    let mut row_map = HashMap::new();
-
-    while let Some(row) = rows.next().map_err(RusqliteError::from)? {
-      for column in column_names.iter() {
-        let value_ref = row.get_ref(&**column).unwrap();
-        let value = RusqliteValueRef(value_ref);
-        row_map.insert(column, serde_json::to_string(&value).unwrap());
-      }
-    }
-
-    Ok(serde_json::to_string(&row_map).unwrap())
+    Ok(row)
   }
 }
 
