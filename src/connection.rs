@@ -19,7 +19,7 @@ use crate::{
   transaction::{
     RusqliteSavepoint, RusqliteTransaction, RusqliteTransactionBehavior, RusqliteTransactionState,
   },
-  utils::napi_value_to_sql_param,
+  utils::{napi_value_to_sql_param, row_to_buffer},
 };
 
 #[napi]
@@ -285,27 +285,20 @@ impl RusqliteConnection {
     &self,
     schema_name: Option<String>,
     pragma_name: String,
-  ) -> napi::Result<String> {
+  ) -> napi::Result<Buffer> {
     let value = match schema_name {
       Some(schema_name) => {
         self
           .connection
-          .pragma_query_value(Some(&*schema_name), &pragma_name, |row| {
-            let value_ref = row.get_ref(0).unwrap();
-            let value = RusqliteValueRef(value_ref);
-            Ok(serde_json::to_string(&value).unwrap())
-          })
+          .pragma_query_value(Some(&*schema_name), &pragma_name, row_to_buffer)
       }
       None => self
         .connection
-        .pragma_query_value(None, &pragma_name, |row| {
-          let value_ref = row.get_ref(0).unwrap();
-          let value = RusqliteValueRef(value_ref);
-          Ok(serde_json::to_string(&value).unwrap())
-        }),
-    };
+        .pragma_query_value(None, &pragma_name, row_to_buffer),
+    }
+    .map_err(RusqliteError::from)?;
 
-    Ok(value.map_err(RusqliteError::from)?)
+    Ok(value.into())
   }
 
   #[napi]
@@ -313,28 +306,24 @@ impl RusqliteConnection {
     &self,
     schema_name: Option<String>,
     pragma_name: String,
-  ) -> napi::Result<Vec<String>> {
-    let mut values = Vec::new();
+  ) -> napi::Result<Buffer> {
+    let mut buffer = vec![];
 
     match schema_name {
       Some(schema_name) => self
         .connection
         .pragma_query(Some(&*schema_name), &pragma_name, |row| {
-          let value_ref = row.get_ref(0).unwrap();
-          let value = RusqliteValueRef(value_ref);
-          values.push(serde_json::to_string(&value).unwrap());
+          buffer = row_to_buffer(row)?;
           Ok(())
         }),
       None => self.connection.pragma_query(None, &pragma_name, |row| {
-        let value_ref = row.get_ref(0).unwrap();
-        let value = RusqliteValueRef(value_ref);
-        values.push(serde_json::to_string(&value).unwrap());
+        buffer = row_to_buffer(row)?;
         Ok(())
       }),
     }
     .map_err(RusqliteError::from)?;
 
-    Ok(values)
+    Ok(buffer.into())
   }
 
   #[napi]
@@ -352,24 +341,24 @@ impl RusqliteConnection {
         self
           .connection
           .pragma(Some(&*schema_name), &pragma_name, &sql_value, |row| {
-            let value_ref = row.get_ref(0).unwrap();
-            let value = RusqliteValueRef(value_ref);
-            let json_string = serde_json::to_string(&value).unwrap();
-            let buffer = Buffer::from(json_string.as_bytes());
+            let value_buffer = row_to_buffer(row)?;
 
-            callback.call(Ok(buffer), ThreadsafeFunctionCallMode::NonBlocking);
+            callback.call(
+              Ok(value_buffer.into()),
+              ThreadsafeFunctionCallMode::NonBlocking,
+            );
             Ok(())
           })
       }
       None => self
         .connection
         .pragma(None, &pragma_name, &sql_value, |row| {
-          let value_ref = row.get_ref(0).unwrap();
-          let value = RusqliteValueRef(value_ref);
-          let json_string = serde_json::to_string(&value).unwrap();
-          let buffer = Buffer::from(json_string.as_bytes());
+          let value_buffer = row_to_buffer(row)?;
 
-          callback.call(Ok(buffer), ThreadsafeFunctionCallMode::NonBlocking);
+          callback.call(
+            Ok(value_buffer.into()),
+            ThreadsafeFunctionCallMode::NonBlocking,
+          );
 
           Ok(())
         }),
@@ -409,7 +398,7 @@ impl RusqliteConnection {
     schema_name: Option<String>,
     pragma_name: String,
     pragma_value: Unknown,
-  ) -> napi::Result<String> {
+  ) -> napi::Result<Buffer> {
     let sql_value = napi_value_to_sql_param(pragma_value)?;
 
     let value = match schema_name {
@@ -417,23 +406,17 @@ impl RusqliteConnection {
         Some(&*schema_name),
         &pragma_name,
         &sql_value,
-        |row| {
-          let value_ref = row.get_ref(0).unwrap();
-          let value = RusqliteValueRef(value_ref);
-          Ok(serde_json::to_string(&value).unwrap())
-        },
+        row_to_buffer,
       ),
-      None => self
-        .connection
-        .pragma_update_and_check(None, &pragma_name, &sql_value, |row| {
-          let value_ref = row.get_ref(0).unwrap();
-          let value = RusqliteValueRef(value_ref);
-          Ok(serde_json::to_string(&value).unwrap())
-        }),
+      None => {
+        self
+          .connection
+          .pragma_update_and_check(None, &pragma_name, &sql_value, row_to_buffer)
+      }
     }
     .map_err(RusqliteError::from)?;
 
-    Ok(value)
+    Ok(value.into())
   }
 
   #[napi]
@@ -552,69 +535,33 @@ impl RusqliteConnection {
   }
 
   #[napi]
-  pub fn query_row(&self, sql: String, sql_params: Vec<Unknown>) -> napi::Result<String> {
+  pub fn query_row(&self, sql: String, sql_params: Vec<Unknown>) -> napi::Result<Buffer> {
     let sql_params = sql_params
       .into_iter()
       .map(|param| napi_value_to_sql_param(param))
       .collect::<napi::Result<Vec<_>>>()?;
 
-    let stmt = self.connection.prepare(&sql).map_err(RusqliteError::from)?;
-
-    let columns = stmt
-      .columns()
-      .iter()
-      .map(|col| col.name().to_string())
-      .collect::<Vec<_>>();
-
     let row = self
       .connection
-      .query_row(&sql, params_from_iter(sql_params.iter()), |row| {
-        let mut row_map = HashMap::new();
-
-        for column in columns {
-          let value_ref = row.get_ref(&*column).unwrap();
-          let value = RusqliteValueRef(value_ref);
-          row_map.insert(column, value);
-        }
-
-        Ok(serde_json::to_string(&row_map).unwrap())
-      })
+      .query_row(&sql, params_from_iter(sql_params.iter()), row_to_buffer)
       .map_err(RusqliteError::from)?;
 
-    Ok(row)
+    Ok(row.into())
   }
 
   #[napi]
-  pub fn query_one(&self, sql: String, sql_params: Vec<Unknown>) -> napi::Result<String> {
+  pub fn query_one(&self, sql: String, sql_params: Vec<Unknown>) -> napi::Result<Buffer> {
     let sql_params = sql_params
       .into_iter()
       .map(|param| napi_value_to_sql_param(param))
       .collect::<napi::Result<Vec<_>>>()?;
 
-    let stmt = self.connection.prepare(&sql).map_err(RusqliteError::from)?;
-
-    let columns = stmt
-      .columns()
-      .iter()
-      .map(|col| col.name().to_string())
-      .collect::<Vec<_>>();
-
     let row = self
       .connection
-      .query_one(&sql, params_from_iter(sql_params.iter()), |row| {
-        let mut row_map = HashMap::new();
-
-        for column in columns {
-          let value_ref = row.get_ref(&*column).unwrap();
-          let value = RusqliteValueRef(value_ref);
-          row_map.insert(column, value);
-        }
-
-        Ok(serde_json::to_string(&row_map).unwrap())
-      })
+      .query_one(&sql, params_from_iter(sql_params.iter()), row_to_buffer)
       .map_err(RusqliteError::from)?;
 
-    Ok(row)
+    Ok(row.into())
   }
 
   #[napi]
