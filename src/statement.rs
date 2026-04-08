@@ -1,11 +1,11 @@
-use napi::{bindgen_prelude::Array, threadsafe_function::ThreadsafeFunction, Env, Unknown};
+use napi::{bindgen_prelude::Array, Env, Unknown};
 use napi_derive::napi;
 use rusqlite::{params_from_iter, StatementStatus};
 
 use crate::{
   column::{RusqliteColumn, RusqliteColumnMetadata},
   errors::RusqliteError,
-  row::{RusqliteRow, RusqliteRows},
+  row::RusqliteRows,
   utils::napi_value_to_sql_param,
 };
 
