@@ -1,0 +1,116 @@
+use std::sync::Arc;
+
+use napi_derive::napi;
+use rusqlite::Transaction;
+
+use crate::errors::RusqliteError;
+
+#[napi]
+pub enum TransactionBehavior {
+  Deferred,
+  Immediate,
+  Exclusive,
+}
+
+#[napi]
+pub enum DropBehavior {
+  Rollback,
+  Commit,
+  Ignore,
+  Panic,
+}
+
+impl From<TransactionBehavior> for rusqlite::TransactionBehavior {
+  fn from(value: TransactionBehavior) -> Self {
+    match value {
+      TransactionBehavior::Deferred => Self::Deferred,
+      TransactionBehavior::Exclusive => Self::Exclusive,
+      TransactionBehavior::Immediate => Self::Immediate,
+    }
+  }
+}
+
+impl From<DropBehavior> for rusqlite::DropBehavior {
+  fn from(value: DropBehavior) -> Self {
+    match value {
+      DropBehavior::Commit => Self::Commit,
+      DropBehavior::Ignore => Self::Ignore,
+      DropBehavior::Panic => Self::Panic,
+      DropBehavior::Rollback => Self::Rollback,
+    }
+  }
+}
+
+#[napi]
+pub struct RusqliteTransaction<'a> {
+  transaction: Transaction<'a>,
+}
+
+#[napi]
+impl RusqliteTransaction<'_> {
+  #[napi]
+  pub fn savepoint(&mut self) -> napi::Result<RusqliteSavepoint<'_>> {
+    let savepoint = self.transaction.savepoint().map_err(RusqliteError::from)?;
+    Ok(RusqliteSavepoint { savepoint })
+  }
+
+  #[napi]
+  pub fn savepoint_with_name(&mut self, name: String) -> napi::Result<RusqliteSavepoint<'_>> {
+    let savepoint = self
+      .transaction
+      .savepoint_with_name(name)
+      .map_err(RusqliteError::from)?;
+    Ok(RusqliteSavepoint { savepoint })
+  }
+
+  #[napi]
+  pub fn drop_behavior(&self) -> napi::Result<DropBehavior> {
+    let behavior = match self.transaction.drop_behavior() {
+      rusqlite::DropBehavior::Commit => DropBehavior::Commit,
+      rusqlite::DropBehavior::Ignore => DropBehavior::Ignore,
+      rusqlite::DropBehavior::Panic => DropBehavior::Panic,
+      rusqlite::DropBehavior::Rollback => DropBehavior::Rollback,
+      _ => panic!("undefined behavior"),
+    };
+
+    Ok(behavior)
+  }
+
+  #[napi]
+  pub fn set_drop_behavior(&mut self, drop_behavior: DropBehavior) -> napi::Result<()> {
+    self.transaction.set_drop_behavior(drop_behavior.into());
+    Ok(())
+  }
+
+  #[napi]
+  pub fn commit(&mut self) -> napi::Result<()> {
+    self
+      .transaction
+      .execute_batch("COMMIT")
+      .map_err(RusqliteError::from)?;
+    Ok(())
+  }
+
+  #[napi]
+  pub fn rollback(&self) -> napi::Result<()> {
+    self
+      .transaction
+      .execute_batch("ROLLBACK")
+      .map_err(RusqliteError::from)?;
+    Ok(())
+  }
+
+  #[napi]
+  pub fn finish(&self) -> napi::Result<()> {
+    self
+      .transaction
+      .execute_batch("FINISH")
+      .map_err(RusqliteError::from)?;
+    Ok(())
+  }
+}
+
+#[napi]
+pub struct RusqliteSavepoint<'a> {
+  savepoint: rusqlite::Savepoint<'a>,
+}

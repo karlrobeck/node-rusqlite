@@ -6,7 +6,7 @@ use crate::{errors::RusqliteError, statement::RusqliteStatement};
 
 #[napi(custom_finalize)]
 pub struct RusqliteConnection {
-  connection: rusqlite::Connection,
+  pub(crate) connection: rusqlite::Connection,
 }
 
 #[napi(object)]
@@ -30,7 +30,6 @@ impl RusqliteConnection {
   #[napi]
   pub fn prepare(&self, sql: String) -> napi::Result<RusqliteStatement<'_>> {
     let statement = self.connection.prepare(&sql).map_err(RusqliteError::from)?;
-
     Ok(RusqliteStatement { statement })
   }
 }
