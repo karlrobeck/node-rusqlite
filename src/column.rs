@@ -41,3 +41,12 @@ impl<'a> RusqliteColumn<'a> {
     Ok(self.column.decl_type().map(|val| val.to_string()))
   }
 }
+
+#[napi(object)]
+pub struct RusqliteConnectionColumnMetadata {
+  pub r#type: Option<String>,
+  pub collation_sequence: Option<String>,
+  pub not_null: bool,
+  pub primary_key: bool,
+  pub auto_increment: bool,
+}

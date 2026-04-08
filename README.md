@@ -6,24 +6,24 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
 
 **Connection**
 - default
-  - [ ] backup()
-  - [ ] restore()
+  - [x] backup()
+  - [x] restore()
   - [ ] blob_open()
   - [ ] busy_timeout()
   - [ ] busy_handler()
-  - [ ] prepare_cached()
     - feature: cache
+      - [ ] prepare_cached()
       - [ ] set_prepared_statement_cache_capacity()
       - [ ] flush_prepared_statement_cache()
     - feature: collation
       - [ ] create_collation()
       - [ ] collation_needed()
       - [ ] remove_collation()
-  - [ ] column_exists()
-  - [ ] table_exists()
-  - [ ] column_metadata()
-  - [ ] db_config()
-  - [ ] set_db_config()
+  - [x] column_exists()
+  - [x] table_exists()
+  - [x] column_metadata()
+  - [x] db_config()
+  - [x] set_db_config()
     - feature: functions
       - [ ] create_scalar_function()
       - [ ] create_aggregate_function()

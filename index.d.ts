@@ -15,12 +15,14 @@ export declare class RusqliteColumnMetadata {
 export declare class RusqliteConnection {
   static open(path: string, options?: RusqliteConnectionOptions | undefined | null): RusqliteConnection
   static openInMemory(options?: RusqliteConnectionOptions | undefined | null): RusqliteConnection
+  backup(name: string, dstPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
+  restore(name: string, srcPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
   prepare(sql: string): RusqliteStatement
 
 }
 
 export declare class RusqliteRow {
-  get(index: string | number): string | number | Uint8Array | null
+
 }
 
 /**
@@ -33,6 +35,10 @@ export declare class RusqliteRow {
 export declare class RusqliteRows extends Iterator<string, void, void> {
 
   next(value?: void): IteratorResult<string, void>
+}
+
+export declare class RusqliteSavepoint {
+
 }
 
 export declare class RusqliteStatement {
@@ -56,6 +62,28 @@ export declare class RusqliteStatement {
   isExplain(): number
   readonly(): boolean
   clearBindings(): void
+}
+
+export declare class RusqliteTransaction {
+  savepoint(): RusqliteSavepoint
+  savepointWithName(name: string): RusqliteSavepoint
+  dropBehavior(): DropBehavior
+  setDropBehavior(dropBehavior: DropBehavior): void
+  commit(): void
+  rollback(): void
+  finish(): void
+}
+
+export declare const enum DropBehavior {
+  Rollback = 0,
+  Commit = 1,
+  Ignore = 2,
+  Panic = 3
+}
+
+export interface Progress {
+  remaining: number
+  pageCount: number
 }
 
 export interface RusqliteConnectionOptions {
@@ -84,4 +112,10 @@ export declare const enum RusqliteStatementStatus {
   FilterMiss = 7,
   FilterHit = 8,
   MemUsed = 99
+}
+
+export declare const enum TransactionBehavior {
+  Deferred = 0,
+  Immediate = 1,
+  Exclusive = 2
 }
