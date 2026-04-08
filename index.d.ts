@@ -18,6 +18,23 @@ export declare class RusqliteConnection {
   backup(name: string, dstPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
   restore(name: string, srcPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
   prepare(sql: string): RusqliteStatement
+  columnExists(dbName: string | undefined | null, tableName: string, columnName: string): boolean
+  tableExists(dbName: string | undefined | null, tableName: string): boolean
+  columnMetadata(dbName: string | undefined | null, tableName: string, columnName: string): RusqliteConnectionColumnMetadata
+  dbConfig(config: RusqliteDbConfig): void
+  setDbConfig(config: RusqliteDbConfig, on: boolean): void
+  pragmaQueryValue(schemaName: string | undefined | null, pragmaName: string): string
+  pragmaQuery(schemaName: string | undefined | null, pragmaName: string): Array<string>
+  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown, callback: ((err: Error | null, arg: Buffer) => any)): void
+  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown): void
+  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown): string
+  transaction(): RusqliteTransaction
+  transactionWithBehavior(behavior: RusqliteTransactionBehavior): RusqliteTransaction
+  uncheckedTransaction(): RusqliteTransaction
+  savepoint(): RusqliteSavepoint
+  savepointWithName(name: string): RusqliteSavepoint
+  transactionState(dbName?: string | undefined | null): RusqliteTransactionState
+  setTransactionBehavior(behavior: RusqliteTransactionBehavior): void
 
 }
 
@@ -86,9 +103,40 @@ export interface Progress {
   pageCount: number
 }
 
+export interface RusqliteConnectionColumnMetadata {
+  type?: string
+  collationSequence?: string
+  notNull: boolean
+  primaryKey: boolean
+  autoIncrement: boolean
+}
+
 export interface RusqliteConnectionOptions {
   flags: number
   vfs?: string
+}
+
+export declare const enum RusqliteDbConfig {
+  SqliteDbconfigEnableFkey = 1002,
+  SqliteDbconfigEnableTrigger = 1003,
+  SqliteDbconfigEnableFts3Tokenizer = 1004,
+  SqliteDbconfigNoCkptOnClose = 1006,
+  SqliteDbconfigEnableQpsg = 1007,
+  SqliteDbconfigTriggerEqp = 1008,
+  SqliteDbconfigResetDatabase = 1009,
+  SqliteDbconfigDefensive = 1010,
+  SqliteDbconfigWritableSchema = 1011,
+  SqliteDbconfigLegacyAlterTable = 1012,
+  SqliteDbconfigDqsDml = 1013,
+  SqliteDbconfigDqsDdl = 1014,
+  SqliteDbconfigEnableView = 1015,
+  SqliteDbconfigLegacyFileFormat = 1016,
+  SqliteDbconfigTrustedSchema = 1017,
+  SqliteDbconfigStmtScanStatus = 1018,
+  SqliteDbconfigReverseScanOrder = 1019,
+  SqliteDbconfigEnableAttachCreate = 1020,
+  SqliteDbconfigEnableAttachWrite = 1021,
+  SqliteDbconfigEnableComments = 1022
 }
 
 export interface RusqliteDetailedColumnMetadata {
@@ -114,8 +162,14 @@ export declare const enum RusqliteStatementStatus {
   MemUsed = 99
 }
 
-export declare const enum TransactionBehavior {
+export declare const enum RusqliteTransactionBehavior {
   Deferred = 0,
   Immediate = 1,
   Exclusive = 2
+}
+
+export declare const enum RusqliteTransactionState {
+  None = 0,
+  Read = 1,
+  Write = 2
 }

@@ -6,7 +6,14 @@ use rusqlite::Transaction;
 use crate::errors::RusqliteError;
 
 #[napi]
-pub enum TransactionBehavior {
+pub enum RusqliteTransactionState {
+  None,
+  Read,
+  Write,
+}
+
+#[napi]
+pub enum RusqliteTransactionBehavior {
   Deferred,
   Immediate,
   Exclusive,
@@ -20,12 +27,12 @@ pub enum DropBehavior {
   Panic,
 }
 
-impl From<TransactionBehavior> for rusqlite::TransactionBehavior {
-  fn from(value: TransactionBehavior) -> Self {
+impl From<RusqliteTransactionBehavior> for rusqlite::TransactionBehavior {
+  fn from(value: RusqliteTransactionBehavior) -> Self {
     match value {
-      TransactionBehavior::Deferred => Self::Deferred,
-      TransactionBehavior::Exclusive => Self::Exclusive,
-      TransactionBehavior::Immediate => Self::Immediate,
+      RusqliteTransactionBehavior::Deferred => Self::Deferred,
+      RusqliteTransactionBehavior::Exclusive => Self::Exclusive,
+      RusqliteTransactionBehavior::Immediate => Self::Immediate,
     }
   }
 }
@@ -41,9 +48,20 @@ impl From<DropBehavior> for rusqlite::DropBehavior {
   }
 }
 
+impl From<rusqlite::TransactionState> for RusqliteTransactionState {
+  fn from(value: rusqlite::TransactionState) -> Self {
+    match value {
+      rusqlite::TransactionState::None => Self::None,
+      rusqlite::TransactionState::Read => Self::Read,
+      rusqlite::TransactionState::Write => Self::Write,
+      _ => panic!("undefined transaction state"),
+    }
+  }
+}
+
 #[napi]
 pub struct RusqliteTransaction<'a> {
-  transaction: Transaction<'a>,
+  pub(crate) transaction: Transaction<'a>,
 }
 
 #[napi]
@@ -112,5 +130,5 @@ impl RusqliteTransaction<'_> {
 
 #[napi]
 pub struct RusqliteSavepoint<'a> {
-  savepoint: rusqlite::Savepoint<'a>,
+  pub(crate) savepoint: rusqlite::Savepoint<'a>,
 }

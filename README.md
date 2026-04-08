@@ -39,11 +39,11 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
     - feature: limits
       - [ ] limit()
       - [ ] set_limit()
-  - [ ] pragma_query_value()
-  - [ ] pragma_query()
-  - [ ] pragma() 
-  - [ ] pragma_update()
-  - [ ] pragma_update_and_check()
+  - [x] pragma_query_value()
+  - [x] pragma_query()
+  - [x] pragma() 
+  - [x] pragma_update()
+  - [x] pragma_update_and_check()
     - feature: serialize
       - [ ] serialize()
       - [ ] deserialize_read_exact()
@@ -51,14 +51,14 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
       - [ ] deserialize()
     - feature: trace
       - [ ] trace_v2
-  - [ ] transaction()
-  - [ ] transaction_with_behavior()
-  - [ ] unchecked_transaction()
-  - [ ] savepoint()
-  - [ ] savepoint_with_name()
+  - [x] transaction()
+  - [x] transaction_with_behavior()
+  - [x] unchecked_transaction()
+  - [x] savepoint()
+  - [x] savepoint_with_name()
     - feature: modern_sqlite
-      - [ ] transaction_state()
-  - [ ] set_transaction_behavior()
+      - [x] transaction_state()
+  - [x] set_transaction_behavior()
     - feature: vtab
       - [ ] create_module()
   - [x] open()

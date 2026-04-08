@@ -5,9 +5,9 @@ use std::{
 };
 
 use napi::{
-  bindgen_prelude::ObjectFinalize,
+  bindgen_prelude::{Buffer, ObjectFinalize},
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  Env,
+  Env, Unknown,
 };
 use napi_derive::napi;
 use rusqlite::{
@@ -18,8 +18,12 @@ use rusqlite::{
 use crate::{
   column::RusqliteConnectionColumnMetadata,
   errors::RusqliteError,
-  row::RusqliteValueRef,
+  row::{RusqliteRow, RusqliteValueRef},
   statement::{RusqliteDetailedColumnMetadata, RusqliteStatement},
+  transaction::{
+    RusqliteSavepoint, RusqliteTransaction, RusqliteTransactionBehavior, RusqliteTransactionState,
+  },
+  utils::napi_value_to_sql_param,
 };
 
 #[napi]
@@ -332,6 +336,172 @@ impl RusqliteConnection {
     .map_err(RusqliteError::from)?;
 
     Ok(values)
+  }
+
+  #[napi]
+  pub fn pragma(
+    &self,
+    env: Env,
+    schema_name: Option<String>,
+    pragma_name: String,
+    pragma_value: Unknown,
+    callback: ThreadsafeFunction<Buffer>,
+  ) -> napi::Result<()> {
+    let sql_value = napi_value_to_sql_param(&env, pragma_value)?;
+
+    match schema_name {
+      Some(schema_name) => {
+        self
+          .connection
+          .pragma(Some(&*schema_name), &pragma_name, &sql_value, |row| {
+            let value_ref = row.get_ref(0).unwrap();
+            let value = RusqliteValueRef(value_ref);
+            let json_string = serde_json::to_string(&value).unwrap();
+            let buffer = Buffer::from(json_string.as_bytes());
+
+            callback.call(Ok(buffer), ThreadsafeFunctionCallMode::NonBlocking);
+            Ok(())
+          })
+      }
+      None => self
+        .connection
+        .pragma(None, &pragma_name, &sql_value, |row| {
+          let value_ref = row.get_ref(0).unwrap();
+          let value = RusqliteValueRef(value_ref);
+          let json_string = serde_json::to_string(&value).unwrap();
+          let buffer = Buffer::from(json_string.as_bytes());
+
+          callback.call(Ok(buffer), ThreadsafeFunctionCallMode::NonBlocking);
+
+          Ok(())
+        }),
+    }
+    .map_err(RusqliteError::from)?;
+
+    Ok(())
+  }
+
+  #[napi]
+  pub fn pragma_update(
+    &self,
+    env: Env,
+    schema_name: Option<String>,
+    pragma_name: String,
+    pragma_value: Unknown,
+  ) -> napi::Result<()> {
+    let sql_value = napi_value_to_sql_param(&env, pragma_value)?;
+
+    match schema_name {
+      Some(schema_name) => {
+        self
+          .connection
+          .pragma_update(Some(&*schema_name), &pragma_name, &sql_value)
+      }
+      None => self
+        .connection
+        .pragma_update(None, &pragma_name, &sql_value),
+    }
+    .map_err(RusqliteError::from)?;
+
+    Ok(())
+  }
+
+  #[napi]
+  pub fn pragma_update_and_check(
+    &self,
+    env: Env,
+    schema_name: Option<String>,
+    pragma_name: String,
+    pragma_value: Unknown,
+  ) -> napi::Result<String> {
+    let sql_value = napi_value_to_sql_param(&env, pragma_value)?;
+
+    let value = match schema_name {
+      Some(schema_name) => self.connection.pragma_update_and_check(
+        Some(&*schema_name),
+        &pragma_name,
+        &sql_value,
+        |row| {
+          let value_ref = row.get_ref(0).unwrap();
+          let value = RusqliteValueRef(value_ref);
+          Ok(serde_json::to_string(&value).unwrap())
+        },
+      ),
+      None => self
+        .connection
+        .pragma_update_and_check(None, &pragma_name, &sql_value, |row| {
+          let value_ref = row.get_ref(0).unwrap();
+          let value = RusqliteValueRef(value_ref);
+          Ok(serde_json::to_string(&value).unwrap())
+        }),
+    }
+    .map_err(RusqliteError::from)?;
+
+    Ok(value)
+  }
+
+  #[napi]
+  pub fn transaction(&mut self) -> napi::Result<RusqliteTransaction<'_>> {
+    let transaction = self.connection.transaction().map_err(RusqliteError::from)?;
+    Ok(RusqliteTransaction { transaction })
+  }
+
+  #[napi]
+  pub fn transaction_with_behavior(
+    &mut self,
+    behavior: RusqliteTransactionBehavior,
+  ) -> napi::Result<RusqliteTransaction<'_>> {
+    let transaction = self
+      .connection
+      .transaction_with_behavior(behavior.into())
+      .map_err(RusqliteError::from)?;
+    Ok(RusqliteTransaction { transaction })
+  }
+
+  #[napi]
+  pub fn unchecked_transaction(&mut self) -> napi::Result<RusqliteTransaction<'_>> {
+    let transaction = self
+      .connection
+      .unchecked_transaction()
+      .map_err(RusqliteError::from)?;
+    Ok(RusqliteTransaction { transaction })
+  }
+
+  #[napi]
+  pub fn savepoint(&mut self) -> napi::Result<RusqliteSavepoint<'_>> {
+    let savepoint = self.connection.savepoint().map_err(RusqliteError::from)?;
+    Ok(RusqliteSavepoint { savepoint })
+  }
+
+  #[napi]
+  pub fn savepoint_with_name(&mut self, name: String) -> napi::Result<RusqliteSavepoint<'_>> {
+    let savepoint = self
+      .connection
+      .savepoint_with_name(name)
+      .map_err(RusqliteError::from)?;
+    Ok(RusqliteSavepoint { savepoint })
+  }
+
+  #[napi]
+  pub fn transaction_state(
+    &self,
+    db_name: Option<String>,
+  ) -> napi::Result<RusqliteTransactionState> {
+    let state = self
+      .connection
+      .transaction_state(db_name.as_deref())
+      .map_err(RusqliteError::from)?;
+
+    Ok(state.into())
+  }
+
+  #[napi]
+  pub fn set_transaction_behavior(
+    &mut self,
+    behavior: RusqliteTransactionBehavior,
+  ) -> napi::Result<()> {
+    self.connection.set_transaction_behavior(behavior.into());
+    Ok(())
   }
 }
 
