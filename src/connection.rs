@@ -29,6 +29,7 @@ impl RusqliteConnection {
   }
 }
 
+#[napi]
 impl ObjectFinalize for RusqliteConnection {
   fn finalize(self, _env: Env) -> napi::Result<()> {
     self

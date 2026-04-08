@@ -15,6 +15,7 @@ export declare class RusqliteColumnMetadata {
 export declare class RusqliteConnection {
   static open(path: string, options?: RusqliteConnectionOptions | undefined | null): RusqliteConnection
   static openInMemory(options?: RusqliteConnectionOptions | undefined | null): RusqliteConnection
+
 }
 
 export declare class RusqliteRow {

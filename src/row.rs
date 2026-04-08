@@ -4,6 +4,7 @@ use napi::{
   Either,
 };
 use napi_derive::napi;
+use rusqlite::types::{Type, ValueRef};
 
 use crate::errors::RusqliteError;
 
@@ -12,13 +13,22 @@ pub struct RusqliteRow<'a> {
   pub(crate) row: &'a rusqlite::Row<'a>,
 }
 
+fn to_raw_bytes(value: ValueRef<'_>, r#type: Type) -> Vec<u8> {
+  let bytes = match r#type {
+    rusqlite::types::Type::Text => value.as_str().unwrap().as_bytes().to_vec(),
+    rusqlite::types::Type::Integer => value.as_i64().unwrap().to_be_bytes().to_vec(),
+    rusqlite::types::Type::Real => value.as_i64().unwrap().to_be_bytes().to_vec(),
+    rusqlite::types::Type::Blob => value.as_blob().unwrap().to_vec(),
+    rusqlite::types::Type::Null => b"\0".to_vec(),
+  };
+
+  bytes
+}
+
 #[napi]
 impl<'a> RusqliteRow<'a> {
   #[napi(ts_return_type = "string | number | Uint8Array | null")]
-  pub fn get(
-    &self,
-    index: Either<String, i64>,
-  ) -> napi::Result<Either5<String, i64, f64, Buffer, Null>> {
+  pub fn get(&self, index: Either<String, i64>) -> napi::Result<Buffer> {
     let result = match index {
       Either::A(string) => self.row.get_ref(&*string),
       Either::B(number) => self.row.get_ref(number as usize),
@@ -27,15 +37,7 @@ impl<'a> RusqliteRow<'a> {
 
     let r#type = result.data_type();
 
-    let value = match r#type {
-      rusqlite::types::Type::Text => Either5::A(result.as_str().unwrap().to_string()),
-      rusqlite::types::Type::Integer => Either5::B(result.as_i64().unwrap()),
-      rusqlite::types::Type::Real => Either5::C(result.as_f64().unwrap()),
-      rusqlite::types::Type::Blob => Either5::D(Buffer::from(result.as_blob().unwrap())),
-      rusqlite::types::Type::Null => Either5::E(Null),
-    };
-
-    Ok(value)
+    Ok(to_raw_bytes(result, r#type).into())
   }
 }
 
@@ -46,32 +48,39 @@ pub struct RusqliteRows<'a> {
 }
 
 #[napi]
-impl<'a> ScopedGenerator<'a> for RusqliteRows<'a> {
+impl<'a> Generator for RusqliteRows<'a> {
   type Next = ();
   type Return = ();
-  type Yield = Object<'a>;
+  type Yield = Buffer;
 
-  fn next(&mut self, env: &'a napi::Env, _value: Option<Self::Next>) -> Option<Self::Yield> {
+  fn next(&mut self, _value: Option<Self::Next>) -> Option<Self::Yield> {
     let next_row = self.rows.next().ok().unwrap_or_default()?;
 
-    let mut js_object = Object::new(env).unwrap();
+    let mut values = vec![];
 
     for column in &self.columns {
       let raw_value = next_row.get_ref(&**column).unwrap();
 
       let r#type = raw_value.data_type();
 
-      let value = match r#type {
-        rusqlite::types::Type::Text => Either5::A(raw_value.as_str().unwrap().to_string()),
-        rusqlite::types::Type::Integer => Either5::B(raw_value.as_i64().unwrap()),
-        rusqlite::types::Type::Real => Either5::C(raw_value.as_f64().unwrap()),
-        rusqlite::types::Type::Blob => Either5::D(Buffer::from(raw_value.as_blob().unwrap())),
-        rusqlite::types::Type::Null => Either5::E(Null),
-      };
+      let value = to_raw_bytes(raw_value, r#type);
 
-      js_object.set(column, value).unwrap();
+      values.push(value);
     }
 
-    Some(js_object)
+    let buffer = values
+      .into_iter()
+      .flat_map(|col| {
+        let len = col.len() as u32;
+        len
+          .to_le_bytes()
+          .iter()
+          .copied()
+          .chain(col)
+          .collect::<Vec<_>>()
+      })
+      .collect::<Vec<_>>();
+
+    Some(buffer.into())
   }
 }
