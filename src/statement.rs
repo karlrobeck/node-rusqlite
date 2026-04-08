@@ -1,4 +1,3 @@
-use napi::bindgen_prelude::Buffer;
 use napi_derive::napi;
 use rusqlite::{params_from_iter, StatementStatus};
 

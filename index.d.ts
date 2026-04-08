@@ -22,11 +22,11 @@ export declare class RusqliteConnection {
   columnMetadata(dbName: string | undefined | null, tableName: string, columnName: string): RusqliteConnectionColumnMetadata
   dbConfig(config: RusqliteDbConfig): void
   setDbConfig(config: RusqliteDbConfig, on: boolean): void
-  pragmaQueryValue(schemaName: string | undefined | null, pragmaName: string): string
-  pragmaQuery(schemaName: string | undefined | null, pragmaName: string): Array<string>
-  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown, callback: ((err: Error | null, arg: Buffer) => any)): void
-  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown): void
-  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown): string
+  pragmaQueryValue(schemaName: string | undefined | null, pragmaName: string): Buffer
+  pragmaQuery(schemaName: string | undefined | null, pragmaName: string): Buffer
+  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array, callback: ((err: Error | null, arg: Buffer) => any)): void
+  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): void
+  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): Buffer
   transaction(): RusqliteTransaction
   transactionWithBehavior(behavior: RusqliteTransactionBehavior): RusqliteTransaction
   uncheckedTransaction(): RusqliteTransaction
@@ -35,12 +35,12 @@ export declare class RusqliteConnection {
   transactionState(dbName?: string | undefined | null): RusqliteTransactionState
   setTransactionBehavior(behavior: RusqliteTransactionBehavior): void
   executeBatch(sql: string): void
-  execute(sql: string, sqlParams: Array<unknown>): number
+  execute(sql: string, sqlParams: Uint8Array): number
   path(): string
   releaseMemory(): void
   lastInsertRowid(): number
-  queryRow(sql: string, sqlParams: Array<unknown>): string
-  queryOne(sql: string, sqlParams: Array<unknown>): string
+  queryRow(sql: string, sqlParams: Uint8Array): Buffer
+  queryOne(sql: string, sqlParams: Uint8Array): Buffer
   prepare(sql: string): RusqliteStatement
   prepareWithFlags(sql: string, flags: RusqlitePrepFlags): RusqliteStatement
   getInterruptHandle(): RusqliteInterruptHandle
@@ -89,10 +89,10 @@ export declare class RusqliteStatement {
   columns(): Array<RusqliteColumn>
   columnsWithMetadata(): Array<RusqliteColumnMetadata>
   columnMetadata(col: number): RusqliteDetailedColumnMetadata | null
-  execute(params?: unknown[] | undefined | null): number
-  insert(params?: unknown[] | undefined | null): number
-  query(params?: unknown[] | undefined | null): RusqliteRows
-  exists(params?: unknown[] | undefined | null): boolean
+  execute(params: Uint8Array): number
+  insert(params: Uint8Array): number
+  query(params: Uint8Array): RusqliteRows
+  exists(params: Uint8Array): boolean
   parameterIndex(name: string): number | null
   parameterName(index: number): string | null
   parameterCount(): number

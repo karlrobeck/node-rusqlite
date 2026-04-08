@@ -1,9 +1,9 @@
-use std::{collections::HashMap, sync::Arc, thread, time::Duration};
+use std::{sync::Arc, thread, time::Duration};
 
 use napi::{
   bindgen_prelude::{Buffer, ObjectFinalize},
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  Env, Unknown,
+  Env,
 };
 use napi_derive::napi;
 use rusqlite::{

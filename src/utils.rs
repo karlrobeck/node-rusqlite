@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use napi::{JsValue, Status, Unknown};
 use rusqlite::{types::Value, ToSql};
 use serde::Deserialize;
 
