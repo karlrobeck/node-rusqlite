@@ -12,6 +12,12 @@ impl From<rusqlite::Error> for RusqliteError {
   }
 }
 
+impl From<serde_json::Error> for RusqliteError {
+  fn from(value: serde_json::Error) -> Self {
+    Self(rusqlite::Error::ToSqlConversionFailure(Box::new(value)))
+  }
+}
+
 impl From<RusqliteError> for napi::Error {
   fn from(value: RusqliteError) -> Self {
     let message = value.0.to_string();

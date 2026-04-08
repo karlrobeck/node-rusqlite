@@ -38,7 +38,7 @@ impl<'a> RusqliteRow<'a> {
     }
     .map_err(RusqliteError::from)?;
 
-    Ok(serde_json::to_string(&RusqliteValueRef(result)).unwrap())
+    Ok(serde_json::to_string(&RusqliteValueRef(result)).map_err(RusqliteError::from)?)
   }
 }
 
@@ -60,13 +60,11 @@ impl<'a> Generator for RusqliteRows<'a> {
     let mut value_map = HashMap::new();
 
     for column in &self.columns {
-      let raw_value = next_row.get_ref(&**column).unwrap();
+      let raw_value = next_row.get_ref(&**column).ok()?;
 
       value_map.insert(column, RusqliteValueRef(raw_value));
     }
 
-    let json_string = serde_json::to_string(&value_map).unwrap();
-
-    Some(json_string)
+    serde_json::to_string(&value_map).ok()
   }
 }
