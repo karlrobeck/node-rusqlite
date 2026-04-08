@@ -1,18 +1,19 @@
 use std::{
+  collections::HashMap,
   sync::{Arc, Mutex, RwLock},
   thread,
   time::Duration,
 };
 
 use napi::{
-  bindgen_prelude::{Buffer, ObjectFinalize},
+  bindgen_prelude::{Array, Buffer, ObjectFinalize},
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   Env, Unknown,
 };
 use napi_derive::napi;
 use rusqlite::{
   backup::{Backup, StepResult},
-  Connection,
+  params_from_iter, Connection,
 };
 
 use crate::{
@@ -502,6 +503,81 @@ impl RusqliteConnection {
   ) -> napi::Result<()> {
     self.connection.set_transaction_behavior(behavior.into());
     Ok(())
+  }
+
+  #[napi]
+  pub fn execute_batch(&self, sql: String) -> napi::Result<()> {
+    self
+      .connection
+      .execute_batch(&sql)
+      .map_err(RusqliteError::from)?;
+    Ok(())
+  }
+
+  #[napi]
+  pub fn execute(&self, env: Env, sql: String, sql_params: Vec<Unknown>) -> napi::Result<i64> {
+    let sql_values = sql_params
+      .into_iter()
+      .map(|param| napi_value_to_sql_param(&env, param))
+      .collect::<napi::Result<Vec<_>>>()?;
+
+    let result = self
+      .connection
+      .execute(&sql, params_from_iter(sql_values.iter()))
+      .map_err(RusqliteError::from)?;
+
+    Ok(result as i64)
+  }
+
+  #[napi]
+  pub fn path(&self) -> napi::Result<String> {
+    Ok(self.connection.path().unwrap_or("").to_string())
+  }
+
+  #[napi]
+  pub fn release_memory(&self) -> napi::Result<()> {
+    self
+      .connection
+      .release_memory()
+      .map_err(RusqliteError::from)?;
+    Ok(())
+  }
+
+  #[napi]
+  pub fn last_insert_rowid(&self) -> napi::Result<i64> {
+    Ok(self.connection.last_insert_rowid())
+  }
+
+  #[napi]
+  pub fn query_row(&self, env: Env, sql: String, sql_params: Vec<Unknown>) -> napi::Result<String> {
+    let sql_params = sql_params
+      .into_iter()
+      .map(|param| napi_value_to_sql_param(&env, param))
+      .collect::<napi::Result<Vec<_>>>()?;
+
+    let mut stmt = self.connection.prepare(&sql).map_err(RusqliteError::from)?;
+
+    let column_count = stmt.column_count();
+
+    let column_names: Vec<String> = (0..column_count)
+      .map(|index| stmt.column_name(index).unwrap().to_string())
+      .collect();
+
+    let mut rows = stmt
+      .query(params_from_iter(sql_params.iter()))
+      .map_err(RusqliteError::from)?;
+
+    let mut row_map = HashMap::new();
+
+    while let Some(row) = rows.next().map_err(RusqliteError::from)? {
+      for column in column_names.iter() {
+        let value_ref = row.get_ref(&**column).unwrap();
+        let value = RusqliteValueRef(value_ref);
+        row_map.insert(column, serde_json::to_string(&value).unwrap());
+      }
+    }
+
+    Ok(serde_json::to_string(&row_map).unwrap())
   }
 }
 

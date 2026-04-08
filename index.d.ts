@@ -35,6 +35,8 @@ export declare class RusqliteConnection {
   savepointWithName(name: string): RusqliteSavepoint
   transactionState(dbName?: string | undefined | null): RusqliteTransactionState
   setTransactionBehavior(behavior: RusqliteTransactionBehavior): void
+  executeBatch(sql: string): void
+  execute(sql: string, sqlParams: Array<unknown>): number
 
 }
 
