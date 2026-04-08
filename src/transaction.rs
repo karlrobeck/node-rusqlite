@@ -66,6 +66,7 @@ pub struct RusqliteTransaction<'a> {
 
 #[napi]
 impl RusqliteTransaction<'_> {
+  /// savepoint
   #[napi]
   pub fn savepoint(&mut self) -> napi::Result<RusqliteSavepoint<'_>> {
     let savepoint = self.transaction.savepoint().map_err(RusqliteError::from)?;

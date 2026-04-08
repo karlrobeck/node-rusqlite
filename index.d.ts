@@ -103,6 +103,7 @@ export declare class RusqliteStatement {
 }
 
 export declare class RusqliteTransaction {
+  /** savepoint */
   savepoint(): RusqliteSavepoint
   savepointWithName(name: string): RusqliteSavepoint
   dropBehavior(): DropBehavior
