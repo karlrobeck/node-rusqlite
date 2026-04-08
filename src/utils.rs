@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 
-use rusqlite::{types::Value, ToSql};
+use rusqlite::{ToSql, types::Value};
 use serde::Deserialize;
 
 use crate::row::RusqliteValueRef;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default, Debug)]
+#[serde(untagged)]
 pub enum RusqliteValue {
+  #[default]
   Null,
   Integer(i64),
   Real(f64),

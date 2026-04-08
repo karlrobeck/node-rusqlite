@@ -1,14 +1,15 @@
 use std::{sync::Arc, thread, time::Duration};
 
 use napi::{
+  Env,
   bindgen_prelude::{Buffer, ObjectFinalize},
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  Env,
 };
 use napi_derive::napi;
 use rusqlite::{
+  Connection, InterruptHandle, PrepFlags,
   backup::{Backup, StepResult},
-  params_from_iter, Connection, InterruptHandle, PrepFlags,
+  params_from_iter,
 };
 
 use crate::{
@@ -18,7 +19,7 @@ use crate::{
   transaction::{
     RusqliteSavepoint, RusqliteTransaction, RusqliteTransactionBehavior, RusqliteTransactionState,
   },
-  utils::{row_to_buffer, RusqliteValue},
+  utils::{RusqliteValue, row_to_buffer},
 };
 
 #[napi]
@@ -504,8 +505,9 @@ impl RusqliteConnection {
 
   #[napi]
   pub fn execute(&self, sql: String, sql_params: &[u8]) -> napi::Result<i64> {
-    let sql_params =
-      serde_json::from_slice::<Vec<RusqliteValue>>(sql_params).map_err(RusqliteError::from)?;
+    let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(sql_params)
+      .map_err(RusqliteError::from)
+      .unwrap_or_default();
 
     let result = self
       .connection
@@ -536,8 +538,9 @@ impl RusqliteConnection {
 
   #[napi]
   pub fn query_row(&self, sql: String, sql_params: &[u8]) -> napi::Result<Buffer> {
-    let sql_params =
-      serde_json::from_slice::<Vec<RusqliteValue>>(sql_params).map_err(RusqliteError::from)?;
+    let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(sql_params)
+      .map_err(RusqliteError::from)
+      .unwrap_or_default();
 
     let row = self
       .connection
@@ -549,8 +552,9 @@ impl RusqliteConnection {
 
   #[napi]
   pub fn query_one(&self, sql: String, sql_params: &[u8]) -> napi::Result<Buffer> {
-    let sql_params =
-      serde_json::from_slice::<Vec<RusqliteValue>>(sql_params).map_err(RusqliteError::from)?;
+    let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(sql_params)
+      .map_err(RusqliteError::from)
+      .unwrap_or_default();
 
     let row = self
       .connection

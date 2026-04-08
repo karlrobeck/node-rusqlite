@@ -126,12 +126,17 @@ impl RusqliteTransaction<'_> {
   }
 
   #[napi]
-  pub fn finish(&self) -> napi::Result<()> {
-    self
-      .transaction
-      .execute_batch("FINISH")
-      .map_err(RusqliteError::from)?;
-    Ok(())
+  pub fn finish(&mut self) -> napi::Result<()> {
+    if self.transaction.is_autocommit() {
+      return Ok(());
+    }
+
+    match self.drop_behavior()? {
+      DropBehavior::Commit => self.commit().or_else(|_| self.rollback()),
+      DropBehavior::Rollback => self.rollback(),
+      DropBehavior::Ignore => Ok(()),
+      DropBehavior::Panic => panic!("Transaction dropped unexpectedly."),
+    }
   }
 }
 
@@ -192,7 +197,7 @@ impl RusqliteSavepoint<'_> {
       .savepoint
       .execute_batch(&format!(
         "RELEASE {}",
-        self.name.as_ref().unwrap_or(&String::new())
+        self.name.as_ref().map_or("_rusqlite_sp", |v| v)
       ))
       .map_err(RusqliteError::from)?;
     self.commited = true;

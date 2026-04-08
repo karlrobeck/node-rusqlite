@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rusqlite::{params_from_iter, StatementStatus};
+use rusqlite::{StatementStatus, params_from_iter};
 
 use crate::{
   column::{RusqliteColumn, RusqliteColumnMetadata},
