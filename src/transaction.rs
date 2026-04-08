@@ -13,7 +13,7 @@ use rusqlite::{
 
 use crate::{
   column::RusqliteConnectionColumnMetadata,
-  connection::{Progress, RusqliteConnection, RusqliteDbConfig, RusqliteInterruptHandle},
+  connection::{Progress, RusqliteDbConfig, RusqliteInterruptHandle},
   errors::RusqliteError,
   statement::{RusqlitePrepFlags, RusqliteStatement},
   utils::{RusqliteValue, row_to_buffer},
@@ -211,7 +211,7 @@ impl RusqliteTransaction<'_> {
     let mut new_connection = Connection::open(src_path).map_err(RusqliteError::from)?;
 
     let backup = Backup::new_with_names(
-      &self.transaction.deref(),
+      self.transaction.deref(),
       self.transaction.deref().path().unwrap(),
       &mut new_connection,
       &*name,
@@ -829,7 +829,7 @@ impl RusqliteSavepoint<'_> {
     let mut new_connection = Connection::open(src_path).map_err(RusqliteError::from)?;
 
     let backup = Backup::new_with_names(
-      &self.savepoint.deref(),
+      self.savepoint.deref(),
       self.savepoint.deref().path().unwrap(),
       &mut new_connection,
       &*name,
