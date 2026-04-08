@@ -2,13 +2,21 @@
   "compilerOptions": {
     "target": "ESNext",
     "strict": true,
-    "moduleResolution": "node",
     "module": "CommonJS",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "types": [
+      "bun"
+    ]
   },
-  "include": ["."],
-  "exclude": ["node_modules", "bench", "__test__"]
+  "include": [
+    "."
+  ],
+  "exclude": [
+    "node_modules",
+    "bench",
+    "__test__"
+  ]
 }

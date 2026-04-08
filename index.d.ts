@@ -15,6 +15,7 @@ export declare class RusqliteColumnMetadata {
 export declare class RusqliteConnection {
   static open(path: string, options?: RusqliteConnectionOptions | undefined | null): RusqliteConnection
   static openInMemory(options?: RusqliteConnectionOptions | undefined | null): RusqliteConnection
+  prepare(sql: string): RusqliteStatement
 
 }
 
@@ -29,9 +30,9 @@ export declare class RusqliteRow {
  * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods
  * @see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html#iterator-helper-methods
  */
-export declare class RusqliteRows extends Iterator<object, void, void> {
+export declare class RusqliteRows extends Iterator<string, void, void> {
 
-  next(value?: void): IteratorResult<object, void>
+  next(value?: void): IteratorResult<string, void>
 }
 
 export declare class RusqliteStatement {

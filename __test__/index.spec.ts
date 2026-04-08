@@ -1,8 +1,16 @@
-import test from 'ava'
+import {it} from 'bun:test'
 
-import { plus100 } from '../index'
+import { RusqliteConnection } from '../index'
 
-test('sync function from native code', (t) => {
-  const fixture = 42
-  t.is(plus100(fixture), fixture + 100)
+it('sync function from native code', () => {
+  const connection = RusqliteConnection.openInMemory();
+
+  const stmt = connection.prepare("select 1 as test");
+
+  const rows = stmt.query()
+
+  for(const rowString of rows) {
+    console.log(JSON.parse(rowString))
+  }
+
 })

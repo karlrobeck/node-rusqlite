@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use napi::{
   bindgen_prelude::{Buffer, Either5, Null, Object},
   iterator::{Generator, ScopedGenerator},
@@ -5,8 +7,27 @@ use napi::{
 };
 use napi_derive::napi;
 use rusqlite::types::{Type, ValueRef};
+use serde::Serialize;
 
 use crate::errors::RusqliteError;
+
+pub struct RusqliteValueRef<'a>(pub(crate) rusqlite::types::ValueRef<'a>);
+
+impl Serialize for RusqliteValueRef<'_> {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::Serializer,
+  {
+    match self.0 {
+      ValueRef::Real(float) => serializer.serialize_f64(float),
+      ValueRef::Integer(integer) => serializer.serialize_i64(integer),
+      ValueRef::Blob(bytes) => serializer.serialize_bytes(bytes),
+      ValueRef::Text(string) => serializer.serialize_str(core::str::from_utf8(string).unwrap()),
+      ValueRef::Null => serializer.serialize_none(),
+      _ => panic!(""),
+    }
+  }
+}
 
 #[napi]
 pub struct RusqliteRow<'a> {
@@ -51,36 +72,21 @@ pub struct RusqliteRows<'a> {
 impl<'a> Generator for RusqliteRows<'a> {
   type Next = ();
   type Return = ();
-  type Yield = Buffer;
+  type Yield = String;
 
   fn next(&mut self, _value: Option<Self::Next>) -> Option<Self::Yield> {
     let next_row = self.rows.next().ok().unwrap_or_default()?;
 
-    let mut values = vec![];
+    let mut value_map = HashMap::new();
 
     for column in &self.columns {
       let raw_value = next_row.get_ref(&**column).unwrap();
 
-      let r#type = raw_value.data_type();
-
-      let value = to_raw_bytes(raw_value, r#type);
-
-      values.push(value);
+      value_map.insert(column, RusqliteValueRef(raw_value));
     }
 
-    let buffer = values
-      .into_iter()
-      .flat_map(|col| {
-        let len = col.len() as u32;
-        len
-          .to_le_bytes()
-          .iter()
-          .copied()
-          .chain(col)
-          .collect::<Vec<_>>()
-      })
-      .collect::<Vec<_>>();
+    let json_string = serde_json::to_string(&value_map).unwrap();
 
-    Some(buffer.into())
+    Some(json_string)
   }
 }
