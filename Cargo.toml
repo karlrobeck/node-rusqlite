@@ -9,10 +9,10 @@ version = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-napi = "3.0.0"
+napi = {version = "3.0.0",features = ["serde-json"]}
 napi-derive = "3.0.0"
 rusqlite = { version = "0.39.0", features = ["bundled", "column_metadata", "column_decltype", "backup"] }
-serde = "1.0.228"
+serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 
 [build-dependencies]

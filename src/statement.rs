@@ -1,4 +1,4 @@
-use napi::{bindgen_prelude::Array, Env, Unknown};
+use napi::bindgen_prelude::Buffer;
 use napi_derive::napi;
 use rusqlite::{params_from_iter, StatementStatus};
 
@@ -6,7 +6,7 @@ use crate::{
   column::{RusqliteColumn, RusqliteColumnMetadata},
   errors::RusqliteError,
   row::RusqliteRows,
-  utils::napi_value_to_sql_param,
+  utils::RusqliteValue,
 };
 
 #[napi]
@@ -163,82 +163,52 @@ impl<'a> RusqliteStatement<'a> {
   }
 
   #[napi]
-  pub fn execute(&mut self, env: Env, params: Option<Array>) -> napi::Result<i64> {
-    let params = params.unwrap_or(env.create_array(0)?);
-
-    let length = params.len();
-
-    let mut sql_params = vec![];
-
-    for index in 0..length {
-      let value = params.get::<Unknown>(index)?.unwrap();
-      sql_params.push(napi_value_to_sql_param(value)?);
-    }
+  pub fn execute(&mut self, params: &[u8]) -> napi::Result<i64> {
+    let params = serde_json::from_slice::<Vec<RusqliteValue>>(params)
+      .map_err(RusqliteError::from)
+      .unwrap_or_default();
 
     let result = self
       .statement
-      .execute(params_from_iter(sql_params.iter()))
+      .execute(params_from_iter(params.iter()))
       .map_err(RusqliteError::from)?;
 
     Ok(result as i64)
   }
 
   #[napi]
-  pub fn insert(&mut self, env: Env, params: Option<Array>) -> napi::Result<i64> {
-    let params = params.unwrap_or(env.create_array(0)?);
-
-    let length = params.len();
-
-    let mut sql_params = vec![];
-
-    for index in 0..length {
-      let value = params.get::<Unknown>(index)?.unwrap();
-      sql_params.push(napi_value_to_sql_param(value)?);
-    }
+  pub fn insert(&mut self, params: &[u8]) -> napi::Result<i64> {
+    let params = serde_json::from_slice::<Vec<RusqliteValue>>(params)
+      .map_err(RusqliteError::from)
+      .unwrap_or_default();
 
     let result = self
       .statement
-      .insert(params_from_iter(sql_params.iter()))
+      .insert(params_from_iter(params.iter()))
       .map_err(RusqliteError::from)?;
 
     Ok(result)
   }
 
   #[napi]
-  pub fn query(&'a mut self, env: Env, params: Option<Array>) -> napi::Result<RusqliteRows<'a>> {
-    let params = params.unwrap_or(env.create_array(0)?);
-
-    let length = params.len();
-
-    let columns = self.column_names()?;
-
-    let mut sql_params = vec![];
-
-    for index in 0..length {
-      let value = params.get::<Unknown>(index)?.unwrap();
-      sql_params.push(napi_value_to_sql_param(value)?);
-    }
+  pub fn query(&mut self, params: &[u8]) -> napi::Result<RusqliteRows<'_>> {
+    let params = serde_json::from_slice::<Vec<RusqliteValue>>(params)
+      .map_err(RusqliteError::from)
+      .unwrap_or_default();
 
     let rows = self
       .statement
-      .query(params_from_iter(sql_params.iter()))
+      .query(params_from_iter(params.iter()))
       .map_err(RusqliteError::from)?;
 
-    Ok(RusqliteRows { rows, columns })
+    Ok(RusqliteRows { rows })
   }
 
   #[napi]
-  pub fn exists(&mut self, env: Env, params: Option<Array>) -> napi::Result<bool> {
-    let params = params.unwrap_or(env.create_array(0)?);
-
-    let length = params.len();
-
-    let mut sql_params = vec![];
-
-    for index in 0..length {
-      let value = params.get::<Unknown>(index)?.unwrap();
-      sql_params.push(napi_value_to_sql_param(value)?);
-    }
+  pub fn exists(&mut self, params: &[u8]) -> napi::Result<bool> {
+    let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(params)
+      .map_err(RusqliteError::from)
+      .unwrap_or_default();
 
     let result = self
       .statement

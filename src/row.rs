@@ -27,7 +27,6 @@ impl Serialize for RusqliteValueRef<'_> {
 #[napi(iterator)]
 pub struct RusqliteRows<'a> {
   pub(crate) rows: rusqlite::Rows<'a>,
-  pub(crate) columns: Vec<String>,
 }
 
 #[napi]
@@ -41,10 +40,11 @@ impl<'a> Generator for RusqliteRows<'a> {
 
     let mut value_map = HashMap::new();
 
-    for column in &self.columns {
-      let raw_value = next_row.get_ref(&**column).ok()?;
+    let columns = next_row.as_ref().columns();
 
-      value_map.insert(column, RusqliteValueRef(raw_value));
+    for column in &columns {
+      let raw_value = next_row.get_ref(column.name()).ok()?;
+      value_map.insert(column.name(), RusqliteValueRef(raw_value));
     }
 
     serde_json::to_vec(&value_map).ok().map(Buffer::from)

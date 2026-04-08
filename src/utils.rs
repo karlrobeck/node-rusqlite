@@ -1,40 +1,34 @@
 use std::collections::HashMap;
 
-use napi::{Env, JsValue, Status, Unknown};
+use napi::{JsValue, Status, Unknown};
 use rusqlite::{types::Value, ToSql};
+use serde::Deserialize;
 
 use crate::row::RusqliteValueRef;
 
-pub fn napi_value_to_sql_param(value: Unknown) -> napi::Result<impl ToSql> {
-  let r#type = value.get_type()?;
+#[derive(Deserialize)]
+pub enum RusqliteValue {
+  Null,
+  Integer(i64),
+  Real(f64),
+  Text(String),
+  Blob(Vec<u8>),
+}
 
-  let value = match r#type {
-    napi::ValueType::Boolean => {
-      if value.coerce_to_bool()? {
-        Value::Integer(1)
-      } else {
-        Value::Integer(0)
-      }
+impl ToSql for RusqliteValue {
+  fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+    match self {
+      RusqliteValue::Null => Ok(rusqlite::types::ToSqlOutput::Owned(Value::Null)),
+      RusqliteValue::Integer(i) => Ok(rusqlite::types::ToSqlOutput::Owned(Value::Integer(*i))),
+      RusqliteValue::Real(f) => Ok(rusqlite::types::ToSqlOutput::Owned(Value::Real(*f))),
+      RusqliteValue::Text(s) => Ok(rusqlite::types::ToSqlOutput::Owned(Value::Text(
+        s.to_owned(),
+      ))),
+      RusqliteValue::Blob(b) => Ok(rusqlite::types::ToSqlOutput::Owned(Value::Blob(
+        b.to_owned(),
+      ))),
     }
-    napi::ValueType::Null => Value::Null,
-    napi::ValueType::Number => Value::Integer(value.coerce_to_number()?.get_int64()?),
-    napi::ValueType::String => Value::Text(
-      value
-        .coerce_to_string()?
-        .into_utf8()?
-        .as_str()
-        .unwrap()
-        .to_string(),
-    ),
-    _ => {
-      return Err(napi::Error::new(
-        Status::GenericFailure,
-        "Unsupported data type",
-      ))
-    }
-  };
-
-  Ok(value)
+  }
 }
 
 pub fn row_to_buffer(row: &rusqlite::Row) -> Result<Vec<u8>, rusqlite::Error> {

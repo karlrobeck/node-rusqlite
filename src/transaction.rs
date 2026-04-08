@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use napi_derive::napi;
 use rusqlite::Transaction;
 
-use crate::{connection::RusqliteConnection, errors::RusqliteError};
+use crate::errors::RusqliteError;
 
 #[napi]
 pub enum RusqliteTransactionState {
