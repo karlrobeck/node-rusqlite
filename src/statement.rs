@@ -159,7 +159,7 @@ impl<'a> RusqliteStatement<'a> {
 
     for index in 0..length {
       let value = params.get::<Unknown>(index)?.unwrap();
-      sql_params.push(napi_value_to_sql_param(&env, value)?);
+      sql_params.push(napi_value_to_sql_param(value)?);
     }
 
     let result = self
@@ -180,7 +180,7 @@ impl<'a> RusqliteStatement<'a> {
 
     for index in 0..length {
       let value = params.get::<Unknown>(index)?.unwrap();
-      sql_params.push(napi_value_to_sql_param(&env, value)?);
+      sql_params.push(napi_value_to_sql_param(value)?);
     }
 
     let result = self
@@ -203,7 +203,7 @@ impl<'a> RusqliteStatement<'a> {
 
     for index in 0..length {
       let value = params.get::<Unknown>(index)?.unwrap();
-      sql_params.push(napi_value_to_sql_param(&env, value)?);
+      sql_params.push(napi_value_to_sql_param(value)?);
     }
 
     let rows = self
@@ -224,7 +224,7 @@ impl<'a> RusqliteStatement<'a> {
 
     for index in 0..length {
       let value = params.get::<Unknown>(index)?.unwrap();
-      sql_params.push(napi_value_to_sql_param(&env, value)?);
+      sql_params.push(napi_value_to_sql_param(value)?);
     }
 
     let result = self

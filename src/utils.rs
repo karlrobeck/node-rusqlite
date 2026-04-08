@@ -1,10 +1,7 @@
-use napi::{
-  bindgen_prelude::{JsValuesTupleIntoVec, ToNapiValue},
-  Env, JsValue, Status, Unknown,
-};
+use napi::{Env, JsValue, Status, Unknown};
 use rusqlite::{types::Value, ToSql};
 
-pub fn napi_value_to_sql_param(env: &Env, value: Unknown) -> napi::Result<impl ToSql> {
+pub fn napi_value_to_sql_param(value: Unknown) -> napi::Result<impl ToSql> {
   let r#type = value.get_type()?;
 
   let value = match r#type {

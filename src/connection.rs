@@ -351,7 +351,7 @@ impl RusqliteConnection {
     pragma_value: Unknown,
     callback: ThreadsafeFunction<Buffer>,
   ) -> napi::Result<()> {
-    let sql_value = napi_value_to_sql_param(&env, pragma_value)?;
+    let sql_value = napi_value_to_sql_param(pragma_value)?;
 
     match schema_name {
       Some(schema_name) => {
@@ -393,7 +393,7 @@ impl RusqliteConnection {
     pragma_name: String,
     pragma_value: Unknown,
   ) -> napi::Result<()> {
-    let sql_value = napi_value_to_sql_param(&env, pragma_value)?;
+    let sql_value = napi_value_to_sql_param(pragma_value)?;
 
     match schema_name {
       Some(schema_name) => {
@@ -418,7 +418,7 @@ impl RusqliteConnection {
     pragma_name: String,
     pragma_value: Unknown,
   ) -> napi::Result<String> {
-    let sql_value = napi_value_to_sql_param(&env, pragma_value)?;
+    let sql_value = napi_value_to_sql_param(pragma_value)?;
 
     let value = match schema_name {
       Some(schema_name) => self.connection.pragma_update_and_check(
@@ -521,7 +521,7 @@ impl RusqliteConnection {
   pub fn execute(&self, env: Env, sql: String, sql_params: Vec<Unknown>) -> napi::Result<i64> {
     let sql_values = sql_params
       .into_iter()
-      .map(|param| napi_value_to_sql_param(&env, param))
+      .map(|param| napi_value_to_sql_param(param))
       .collect::<napi::Result<Vec<_>>>()?;
 
     let result = self
@@ -555,7 +555,7 @@ impl RusqliteConnection {
   pub fn query_row(&self, env: Env, sql: String, sql_params: Vec<Unknown>) -> napi::Result<String> {
     let sql_params = sql_params
       .into_iter()
-      .map(|param| napi_value_to_sql_param(&env, param))
+      .map(|param| napi_value_to_sql_param(param))
       .collect::<napi::Result<Vec<_>>>()?;
 
     let stmt = self.connection.prepare(&sql).map_err(RusqliteError::from)?;
@@ -588,7 +588,7 @@ impl RusqliteConnection {
   pub fn query_one(&self, env: Env, sql: String, sql_params: Vec<Unknown>) -> napi::Result<String> {
     let sql_params = sql_params
       .into_iter()
-      .map(|param| napi_value_to_sql_param(&env, param))
+      .map(|param| napi_value_to_sql_param(param))
       .collect::<napi::Result<Vec<_>>>()?;
 
     let stmt = self.connection.prepare(&sql).map_err(RusqliteError::from)?;
