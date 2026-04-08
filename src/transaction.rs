@@ -1,3 +1,6 @@
+use std::ops::Deref;
+
+use napi::bindgen_prelude::ObjectFinalize;
 use napi_derive::napi;
 use rusqlite::Transaction;
 
@@ -57,7 +60,7 @@ impl From<rusqlite::TransactionState> for RusqliteTransactionState {
   }
 }
 
-#[napi]
+#[napi(custom_finalize)]
 pub struct RusqliteTransaction<'a> {
   pub(crate) transaction: Transaction<'a>,
 }
@@ -70,7 +73,7 @@ impl RusqliteTransaction<'_> {
     let savepoint = self.transaction.savepoint().map_err(RusqliteError::from)?;
     Ok(RusqliteSavepoint {
       savepoint,
-      name: None,
+      name: Some("_rusqlite_sp".to_string()),
       commited: false,
     })
   }
@@ -141,6 +144,22 @@ impl RusqliteTransaction<'_> {
 }
 
 #[napi]
+impl<'a> Deref for RusqliteTransaction<'a> {
+  type Target = Transaction<'a>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.transaction
+  }
+}
+
+#[napi]
+impl ObjectFinalize for RusqliteTransaction<'_> {
+  fn finalize(self, _env: napi::Env) -> napi::Result<()> {
+    Ok(self.transaction.finish().map_err(RusqliteError::from)?)
+  }
+}
+
+#[napi(custom_finalize)]
 pub struct RusqliteSavepoint<'a> {
   pub(crate) savepoint: rusqlite::Savepoint<'a>,
   pub(crate) name: Option<String>,
@@ -154,7 +173,7 @@ impl RusqliteSavepoint<'_> {
     let savepoint = self.savepoint.savepoint().map_err(RusqliteError::from)?;
     Ok(RusqliteSavepoint {
       savepoint,
-      name: self.name.clone(),
+      name: Some("_rusqlite_sp".to_string()),
       commited: self.commited,
     })
   }
@@ -224,5 +243,12 @@ impl RusqliteSavepoint<'_> {
       DropBehavior::Panic => panic!("savepoint was not committed or rolled back"),
       DropBehavior::Rollback => self.rollback().and_then(|()| self.commit()),
     }
+  }
+}
+
+#[napi]
+impl ObjectFinalize for RusqliteSavepoint<'_> {
+  fn finalize(self, _env: napi::Env) -> napi::Result<()> {
+    Ok(self.savepoint.finish().map_err(RusqliteError::from)?)
   }
 }

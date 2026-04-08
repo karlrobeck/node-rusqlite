@@ -79,6 +79,7 @@ export declare class RusqliteSavepoint {
   commit(): void
   rollback(): void
   finish(): void
+
 }
 
 export declare class RusqliteStatement {
@@ -102,6 +103,7 @@ export declare class RusqliteStatement {
   isExplain(): number
   readonly(): boolean
   clearBindings(): void
+
 }
 
 export declare class RusqliteTransaction {
@@ -113,6 +115,8 @@ export declare class RusqliteTransaction {
   commit(): void
   rollback(): void
   finish(): void
+
+
 }
 
 export declare const enum DropBehavior {

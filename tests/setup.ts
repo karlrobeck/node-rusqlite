@@ -1,4 +1,4 @@
-import { RusqliteConnection } from "..";
+import { RusqliteConnection } from "../bindings/binding";
 
 export const memorySqlite = () => RusqliteConnection.openInMemory();
 

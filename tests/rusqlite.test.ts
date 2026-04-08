@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, it } from "bun:test";
 import { expect } from "bun:test";
-import { RusqliteConnection, RusqliteTransactionBehavior, DropBehavior, RusqliteDbConfig } from "..";
+import { RusqliteConnection, RusqliteTransactionBehavior, DropBehavior, RusqliteDbConfig } from "../bindings/binding";
 import {
   memorySqlite,
   createUsersTable,

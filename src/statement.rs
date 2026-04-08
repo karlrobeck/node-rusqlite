@@ -1,3 +1,4 @@
+use napi::bindgen_prelude::ObjectFinalize;
 use napi_derive::napi;
 use rusqlite::{StatementStatus, params_from_iter};
 
@@ -56,7 +57,7 @@ pub struct RusqliteDetailedColumnMetadata {
   pub auto_increment: bool,
 }
 
-#[napi]
+#[napi(custom_finalize)]
 pub struct RusqliteStatement<'a> {
   pub(crate) statement: rusqlite::Statement<'a>,
 }
@@ -268,5 +269,12 @@ impl<'a> RusqliteStatement<'a> {
   pub fn clear_bindings(&mut self) -> napi::Result<()> {
     self.statement.clear_bindings();
     Ok(())
+  }
+}
+
+#[napi]
+impl ObjectFinalize for RusqliteStatement<'_> {
+  fn finalize(self, _env: napi::Env) -> napi::Result<()> {
+    Ok(self.statement.finalize().map_err(RusqliteError::from)?)
   }
 }
