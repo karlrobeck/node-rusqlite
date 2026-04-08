@@ -580,6 +580,39 @@ impl RusqliteConnection {
 
     Ok(row)
   }
+
+  #[napi]
+  pub fn query_one(&self, env: Env, sql: String, sql_params: Vec<Unknown>) -> napi::Result<String> {
+    let sql_params = sql_params
+      .into_iter()
+      .map(|param| napi_value_to_sql_param(&env, param))
+      .collect::<napi::Result<Vec<_>>>()?;
+
+    let stmt = self.connection.prepare(&sql).map_err(RusqliteError::from)?;
+
+    let columns = stmt
+      .columns()
+      .iter()
+      .map(|col| col.name().to_string())
+      .collect::<Vec<_>>();
+
+    let row = self
+      .connection
+      .query_one(&sql, params_from_iter(sql_params.iter()), |row| {
+        let mut row_map = HashMap::new();
+
+        for column in columns {
+          let value_ref = row.get_ref(&*column).unwrap();
+          let value = RusqliteValueRef(value_ref);
+          row_map.insert(column, value);
+        }
+
+        Ok(serde_json::to_string(&row_map).unwrap())
+      })
+      .map_err(RusqliteError::from)?;
+
+    Ok(row)
+  }
 }
 
 #[napi]
