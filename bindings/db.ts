@@ -1,4 +1,4 @@
-import { RusqliteConnection, RusqliteDbConfig, RusqliteSharedConnection, RusqliteTransaction, RusqliteTransactionBehavior } from "./binding";
+import { RusqliteConnection, RusqliteDbConfig, RusqlitePrepFlags, RusqliteSharedConnection, RusqliteStatement, RusqliteTransaction, RusqliteTransactionBehavior } from "./binding";
 
 export class RusqliteError extends Error {
   constructor(
@@ -84,9 +84,9 @@ const Serialization = {
   },
 };
 
-type OmittedSharedConnection = 'pragmaQueryValue' | 'pragmaQuery' | 'pragma' | 'pragmaUpdateAndCheck' | 'transaction' | '_connection'
+type OmittedSharedConnection = 'pragmaQueryValue' | 'pragmaQuery' | 'pragma' | 'pragmaUpdateAndCheck' | 'transaction' | '_connection' | 'execute' | 'queryOne' | 'queryRow' | 'prepare' | 'prepareWithFlags'
 
-export interface Rusqlite extends Omit<RusqliteConnection,OmittedSharedConnection> {}
+export interface Rusqlite extends RusqliteConnection {}
 
 export class Rusqlite {
   constructor(private readonly conn: RusqliteConnection | RusqliteSharedConnection) {
@@ -110,22 +110,6 @@ export class Rusqlite {
 
   get _connection() {
     return this.conn
-  }
-
-  get columnExists() {
-    return this._connection.columnExists
-  }
-
-  get tableExists() {
-    return this._connection.tableExists
-  }
-
-  get columnMetadata() {
-    return this._connection.columnMetadata
-  }
-
-  get setDbConfig() {
-    return this._connection.setDbConfig
   }
 
   pragma(schemaName: string | undefined,pragmaName:string,pragmaValue:unknown,callback?:(arg:unknown) => void) {
@@ -176,9 +160,36 @@ export class Rusqlite {
       mainTrx.finish()
     }
   }
+
+  execute(sql:string,sqlParams?:unknown[]) {
+    const params = Serialization.serializeParams(sqlParams)
+    return this._connection.execute(sql,params)
+  }
+
+  queryRow(sql:string,sqlParams?:unknown[]) {
+    const params = Serialization.serializeParams(sqlParams)
+    const result = this._connection.queryRow(sql,params)
+    return Serialization.deserialize(result)
+  }
+
+  queryOne(sql:string,sqlParams?:unknown[]) {
+    const params = Serialization.serializeParams(sqlParams);
+    const result = this._connection.queryOne(sql,params);
+    return Serialization.deserialize(result)
+  }
+
+  prepare(sql:string) {
+    const stmt = this._connection.prepare(sql)
+    return new Statement(stmt)
+  }
+
+  prepareWithFlags(sql:string,flags:RusqlitePrepFlags) {
+    const stmt = this._connection.prepareWithFlags(sql,flags)
+    return new Statement(stmt)
+  }
 }
 
-export type TransactionInstance = Omit<Rusqlite & RusqliteTransaction,OmittedSharedConnection>;
+export type TransactionInstance = Rusqlite & RusqliteTransaction;
 
 export interface Transaction extends TransactionInstance {}
 
@@ -220,10 +231,46 @@ export class Transaction {
   }
 }
 
+export interface Statement extends Statement, RusqliteStatement {}
+
+export class Statement {
+  constructor(private readonly stmt: RusqliteStatement) {
+    return new Proxy(this, {
+      get: (target, prop, receiver) => {
+        // 1. Check if the property is defined in this Statement wrapper
+        if (prop in target) {
+          const value = Reflect.get(target, prop, receiver);
+          return typeof value === 'function' ? value.bind(target) : value;
+        }
+
+        // 2. Fallback to the raw RusqliteStatement
+        const rawStmt = (target as any).stmt;
+        const value = rawStmt[prop];
+        return typeof value === 'function' ? value.bind(rawStmt) : value;
+      }
+    });
+  }
+
+  execute(sqlParams?:unknown[]) {
+    const params = Serialization.serialize(sqlParams)
+    return this.stmt.execute(params)
+  }
+
+  insert(sqlParams:unknown[]) {
+    const params = Serialization.serialize(sqlParams);
+    return this.stmt.insert(params)
+  }
+
+  query(sqlParams?:unknown[]) {
+    const params = Serialization.serialize(sqlParams);
+    return this.stmt.query(params)
+  }
+}
+
 const conn = RusqliteConnection.openInMemory();
 
 const rusqlite = new Rusqlite(conn)
 
 rusqlite.transaction(undefined,(trx) => {
-  trx
+  const stmt = trx.prepare('')
 })
