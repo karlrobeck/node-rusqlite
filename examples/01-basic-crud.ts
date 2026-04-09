@@ -8,7 +8,7 @@
  * - Delete (DELETE)
  */
 
-import { Database, RusqliteError } from "../bindings/index";
+import { Rusqlite, RusqliteConnection, RusqliteError } from "../bindings/index.ts";
 
 interface User {
   id: number;
@@ -19,10 +19,11 @@ interface User {
 
 function basicCRUD() {
   // Create an in-memory database
-  const db = Database.openInMemory();
+  const conn = RusqliteConnection.openInMemory();
+  const db = new Rusqlite(conn)
 
   // Create a users table
-  db.exec(`
+  db.executeBatch(`
     CREATE TABLE users (
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL,
@@ -34,11 +35,11 @@ function basicCRUD() {
   console.log("✓ Table created");
 
   // CREATE - Insert users
-  db.exec(`
+  db.executeBatch(`
     INSERT INTO users (id, name, email, age) VALUES (1, 'Alice', 'alice@example.com', 30)
   `);
 
-  db.exec(`
+  db.executeBatch(`
     INSERT INTO users (id, name, email, age) VALUES (2, 'Bob', 'bob@example.com', 25)
   `);
 
@@ -55,10 +56,11 @@ function basicCRUD() {
   const allUsers = db.queryAll<User>(
     "SELECT id, name, email, age FROM users ORDER BY id"
   );
+  
   console.log("✓ Query all:", allUsers);
 
   // UPDATE - Modify a user
-  const updated = db.exec(`
+  const updated = db.executeBatch(`
     UPDATE users SET age = 31 WHERE id = 1
   `);
   console.log(`✓ Updated ${updated} user(s)`);
@@ -70,7 +72,7 @@ function basicCRUD() {
   console.log("✓ After update:", updatedUser);
 
   // DELETE - Remove a user
-  const deleted = db.exec(`
+  const deleted = db.executeBatch(`
     DELETE FROM users WHERE id = 2
   `);
   console.log(`✓ Deleted ${deleted} user(s)`);
