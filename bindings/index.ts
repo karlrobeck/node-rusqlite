@@ -835,9 +835,10 @@ export class Database {
       try {
         txn.rollback();
       } catch (rollbackError) {
-        // Ignore rollback errors
       }
       throw error;
+    } finally {
+      txn.finish()
     }
   }
 

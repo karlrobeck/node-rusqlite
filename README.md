@@ -39,9 +39,9 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
     - feature: limits
       - [ ] limit()
       - [ ] set_limit()
+  - [x] pragma() 
   - [x] pragma_query_value()
   - [x] pragma_query()
-  - [x] pragma() 
   - [x] pragma_update()
   - [x] pragma_update_and_check()
     - feature: serialize

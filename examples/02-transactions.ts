@@ -62,7 +62,6 @@ function transactionExample() {
     db.withTransaction(() => {
       db.exec(`UPDATE accounts SET balance = balance - 300 WHERE id = 2`);
       console.log("✓ First update done");
-
       // This will fail because balance would go negative (or any other error)
       throw new Error("Simulated business logic error");
     });

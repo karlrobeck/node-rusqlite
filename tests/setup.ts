@@ -1,4 +1,5 @@
 import { RusqliteConnection } from "../bindings/binding";
+import {serialize} from "node:v8"
 
 export const memorySqlite = () => RusqliteConnection.openInMemory();
 
