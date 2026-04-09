@@ -1,4 +1,4 @@
-import { RusqliteConnection, RusqliteDbConfig, RusqlitePrepFlags, RusqliteSharedConnection, RusqliteStatement, RusqliteTransaction, RusqliteTransactionBehavior } from "./binding";
+import { RusqliteConnection, RusqlitePrepFlags, RusqliteSharedConnection, RusqliteStatement, RusqliteTransaction, RusqliteTransactionBehavior } from "./binding";
 
 export class RusqliteError extends Error {
   constructor(
@@ -84,8 +84,7 @@ const Serialization = {
   },
 };
 
-type OmittedSharedConnection = 'pragmaQueryValue' | 'pragmaQuery' | 'pragma' | 'pragmaUpdateAndCheck' | 'transaction' | '_connection' | 'execute' | 'queryOne' | 'queryRow' | 'prepare' | 'prepareWithFlags'
-
+// @ts-expect-error Proxy methods have different return types than the underlying connection
 export interface Rusqlite extends RusqliteConnection {}
 
 export class Rusqlite {
@@ -191,6 +190,7 @@ export class Rusqlite {
 
 export type TransactionInstance = Rusqlite & RusqliteTransaction;
 
+// @ts-expect-error Proxy methods have different return types than the underlying transaction
 export interface Transaction extends TransactionInstance {}
 
 export class Transaction {
@@ -231,7 +231,8 @@ export class Transaction {
   }
 }
 
-export interface Statement extends Statement, RusqliteStatement {}
+// @ts-expect-error Proxy methods have different parameter types than the underlying statement
+export interface Statement extends RusqliteStatement {}
 
 export class Statement {
   constructor(private readonly stmt: RusqliteStatement) {
@@ -263,14 +264,6 @@ export class Statement {
 
   query(sqlParams?:unknown[]) {
     const params = Serialization.serialize(sqlParams);
-    return this.stmt.query(params)
+    return Serialization.deserializeRows(this.stmt.query(params))
   }
 }
-
-const conn = RusqliteConnection.openInMemory();
-
-const rusqlite = new Rusqlite(conn)
-
-rusqlite.transaction(undefined,(trx) => {
-  const stmt = trx.prepare('')
-})
