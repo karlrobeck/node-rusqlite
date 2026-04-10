@@ -1,25 +1,15 @@
-use std::{ops::Deref, sync::Arc, thread, time::Duration};
+use std::ops::Deref;
 
 use napi::{
-  bindgen_prelude::{Buffer, ObjectFinalize},
-  threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
+  Env,
+  bindgen_prelude::{ObjectFinalize, Reference, SharedReference},
 };
 use napi_derive::napi;
-use rusqlite::{
-  Connection, PrepFlags, Transaction,
-  backup::{Backup, StepResult},
-  params_from_iter,
-};
+use rusqlite::{Connection, Transaction};
 
 use crate::{
-  column::RusqliteConnectionColumnMetadata,
-  connection::{
-    Progress, RusqliteConnection, RusqliteDbConfig, RusqliteInterruptHandle,
-    RusqliteSharedConnection,
-  },
+  connection::{RusqliteConnection, RusqliteSharedConnection},
   errors::RusqliteError,
-  statement::{RusqlitePrepFlags, RusqliteStatement},
-  utils::{RusqliteValue, row_to_buffer},
 };
 
 #[napi]
@@ -76,32 +66,45 @@ impl From<rusqlite::TransactionState> for RusqliteTransactionState {
   }
 }
 
-#[napi(custom_finalize)]
-pub struct RusqliteTransaction<'a> {
-  pub(crate) transaction: Transaction<'a>,
+#[napi]
+pub struct RusqliteTransaction {
+  pub(crate) transaction: SharedReference<RusqliteConnection, Transaction<'static>>,
 }
 
 #[napi]
-impl RusqliteTransaction<'_> {
+impl RusqliteTransaction {
   /// savepoint
   #[napi]
-  pub fn savepoint(&mut self) -> napi::Result<RusqliteSavepoint<'_>> {
-    let savepoint = self.transaction.savepoint().map_err(RusqliteError::from)?;
+  pub fn savepoint(
+    &mut self,
+    env: Env,
+    reference: Reference<RusqliteConnection>,
+  ) -> napi::Result<RusqliteSavepoint> {
     Ok(RusqliteSavepoint {
-      savepoint,
+      savepoint: reference.share_with(env, |conn| {
+        Ok(conn.connection.savepoint().map_err(RusqliteError::from)?)
+      })?,
       name: Some("_rusqlite_sp".to_string()),
       commited: false,
     })
   }
 
   #[napi]
-  pub fn savepoint_with_name(&mut self, name: String) -> napi::Result<RusqliteSavepoint<'_>> {
-    let savepoint = self
-      .transaction
-      .savepoint_with_name(name.clone())
-      .map_err(RusqliteError::from)?;
+  pub fn savepoint_with_name(
+    &mut self,
+    env: Env,
+    reference: Reference<RusqliteConnection>,
+    name: String,
+  ) -> napi::Result<RusqliteSavepoint> {
     Ok(RusqliteSavepoint {
-      savepoint,
+      savepoint: reference.share_with(env, |conn| {
+        Ok(
+          conn
+            .connection
+            .savepoint_with_name(name.clone())
+            .map_err(RusqliteError::from)?,
+        )
+      })?,
       name: Some(name),
       commited: false,
     })
@@ -159,14 +162,14 @@ impl RusqliteTransaction<'_> {
   }
 
   #[napi(getter)]
-  pub fn connection(&'_ self) -> napi::Result<RusqliteSharedConnection<'_>> {
+  pub fn connection(&self) -> napi::Result<RusqliteSharedConnection<'_>> {
     Ok(RusqliteSharedConnection {
       connection: self.transaction.deref(),
     })
   }
 }
 
-impl<'a> Deref for RusqliteTransaction<'a> {
+impl Deref for RusqliteTransaction {
   type Target = Connection;
 
   fn deref(&self) -> &Self::Target {
@@ -175,39 +178,45 @@ impl<'a> Deref for RusqliteTransaction<'a> {
 }
 
 #[napi]
-impl ObjectFinalize for RusqliteTransaction<'_> {
-  fn finalize(self, _env: napi::Env) -> napi::Result<()> {
-    Ok(self.transaction.finish().map_err(RusqliteError::from)?)
-  }
-}
-
-#[napi(custom_finalize)]
-pub struct RusqliteSavepoint<'a> {
-  pub(crate) savepoint: rusqlite::Savepoint<'a>,
+pub struct RusqliteSavepoint {
+  pub(crate) savepoint: SharedReference<RusqliteConnection, rusqlite::Savepoint<'static>>,
   pub(crate) name: Option<String>,
   pub(crate) commited: bool,
 }
 
 #[napi]
-impl RusqliteSavepoint<'_> {
+impl RusqliteSavepoint {
   #[napi]
-  pub fn savepoint(&mut self) -> napi::Result<RusqliteSavepoint<'_>> {
-    let savepoint = self.savepoint.savepoint().map_err(RusqliteError::from)?;
+  pub fn savepoint(
+    &mut self,
+    env: Env,
+    reference: Reference<RusqliteConnection>,
+  ) -> napi::Result<RusqliteSavepoint> {
     Ok(RusqliteSavepoint {
-      savepoint,
+      savepoint: reference.share_with(env, |conn| {
+        Ok(conn.connection.savepoint().map_err(RusqliteError::from)?)
+      })?,
       name: Some("_rusqlite_sp".to_string()),
       commited: self.commited,
     })
   }
 
   #[napi]
-  pub fn savepoint_with_name(&mut self, name: String) -> napi::Result<RusqliteSavepoint<'_>> {
-    let savepoint = self
-      .savepoint
-      .savepoint_with_name(name.clone())
-      .map_err(RusqliteError::from)?;
+  pub fn savepoint_with_name(
+    &mut self,
+    env: Env,
+    reference: Reference<RusqliteConnection>,
+    name: String,
+  ) -> napi::Result<RusqliteSavepoint> {
     Ok(RusqliteSavepoint {
-      savepoint,
+      savepoint: reference.share_with(env, |conn| {
+        Ok(
+          conn
+            .connection
+            .savepoint_with_name(name.clone())
+            .map_err(RusqliteError::from)?,
+        )
+      })?,
       name: Some(name),
       commited: self.commited,
     })
@@ -268,16 +277,9 @@ impl RusqliteSavepoint<'_> {
   }
 
   #[napi(getter)]
-  pub fn connection(&'_ self) -> napi::Result<RusqliteSharedConnection<'_>> {
+  pub fn connection(&self) -> napi::Result<RusqliteSharedConnection<'_>> {
     Ok(RusqliteSharedConnection {
       connection: self.savepoint.deref(),
     })
-  }
-}
-
-#[napi]
-impl ObjectFinalize for RusqliteSavepoint<'_> {
-  fn finalize(self, _env: napi::Env) -> napi::Result<()> {
-    Ok(self.savepoint.finish().map_err(RusqliteError::from)?)
   }
 }

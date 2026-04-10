@@ -1,4 +1,6 @@
-use napi::bindgen_prelude::ObjectFinalize;
+use std::{mem, ptr};
+
+use napi::bindgen_prelude::{ObjectFinalize, SharedReference};
 use napi_derive::napi;
 use rusqlite::{StatementStatus, params_from_iter};
 
@@ -8,6 +10,10 @@ use crate::{
   row::RusqliteRows,
   utils::RusqliteValue,
 };
+
+fn statement_not_exist() -> napi::Error {
+  napi::Error::new(napi::Status::GenericFailure, "Statement does not exist")
+}
 
 #[napi]
 pub enum RusqliteStatementStatus {
@@ -58,12 +64,12 @@ pub struct RusqliteDetailedColumnMetadata {
 }
 
 #[napi(custom_finalize)]
-pub struct RusqliteStatement<'a> {
-  pub(crate) statement: rusqlite::Statement<'a>,
+pub struct RusqliteStatement<'env> {
+  pub(crate) statement: rusqlite::Statement<'env>,
 }
 
 #[napi]
-impl<'a> RusqliteStatement<'a> {
+impl RusqliteStatement<'_> {
   #[napi]
   pub fn column_names(&self) -> napi::Result<Vec<String>> {
     Ok(
@@ -103,7 +109,7 @@ impl<'a> RusqliteStatement<'a> {
   }
 
   #[napi]
-  pub fn columns(&'a self) -> napi::Result<Vec<RusqliteColumn<'a>>> {
+  pub fn columns(&self) -> napi::Result<Vec<RusqliteColumn<'_>>> {
     Ok(
       self
         .statement
@@ -115,7 +121,7 @@ impl<'a> RusqliteStatement<'a> {
   }
 
   #[napi]
-  pub fn columns_with_metadata(&'a self) -> napi::Result<Vec<RusqliteColumnMetadata<'a>>> {
+  pub fn columns_with_metadata(&self) -> napi::Result<Vec<RusqliteColumnMetadata<'_>>> {
     Ok(
       self
         .statement
@@ -127,10 +133,7 @@ impl<'a> RusqliteStatement<'a> {
   }
 
   #[napi]
-  pub fn column_metadata(
-    &'a self,
-    col: i64,
-  ) -> napi::Result<Option<RusqliteDetailedColumnMetadata>> {
+  pub fn column_metadata(&self, col: i64) -> napi::Result<Option<RusqliteDetailedColumnMetadata>> {
     let metadata = self
       .statement
       .column_metadata(col as usize)
@@ -270,11 +273,17 @@ impl<'a> RusqliteStatement<'a> {
     self.statement.clear_bindings();
     Ok(())
   }
+
+  #[napi(js_name = "[Symbol.dispose]")]
+  pub fn dispose(&mut self) -> napi::Result<()> {
+    Ok(())
+  }
 }
 
 #[napi]
-impl ObjectFinalize for RusqliteStatement<'_> {
-  fn finalize(self, _env: napi::Env) -> napi::Result<()> {
-    Ok(self.statement.finalize().map_err(RusqliteError::from)?)
+impl<'env> ObjectFinalize for RusqliteStatement<'env> {
+  fn finalize(self, env: napi::Env) -> napi::Result<()> {
+    self.statement.finalize().map_err(RusqliteError::from)?;
+    Ok(())
   }
 }

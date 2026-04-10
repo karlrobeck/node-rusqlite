@@ -7,7 +7,7 @@
  * - Nested savepoints
  */
 
-import { Rusqlite,RusqliteConnection, RusqliteError } from "../bindings/index.ts";
+import { executeBatch, Rusqlite,RusqliteConnection, RusqliteError } from "../bindings/index.ts";
 
 interface Account {
   id: number;
@@ -20,7 +20,7 @@ function transactionExample() {
   const db = new Rusqlite(conn)
 
   // Create accounts table
-  db.executeBatch(`
+  executeBatch(conn,`
     CREATE TABLE accounts (
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL,
@@ -29,8 +29,8 @@ function transactionExample() {
   `);
 
   // Initial data
-  db.executeBatch(`INSERT INTO accounts (id, name, balance) VALUES (1, 'Alice', 1000.0)`);
-  db.executeBatch(`INSERT INTO accounts (id, name, balance) VALUES (2, 'Bob', 500.0)`);
+  executeBatch(conn,`INSERT INTO accounts (id, name, balance) VALUES (1, 'Alice', 1000.0)`);
+  executeBatch(conn,`INSERT INTO accounts (id, name, balance) VALUES (2, 'Bob', 500.0)`);
 
   console.log("=== Initial State ===");
   const initialAccounts = db.queryAll<Account>(

@@ -2,7 +2,7 @@ use std::{ops::Deref, sync::Arc, thread, time::Duration};
 
 use napi::{
   Env,
-  bindgen_prelude::{Buffer, ObjectFinalize},
+  bindgen_prelude::{Buffer, External, ObjectFinalize, Reference, SharedReference},
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
 };
 use napi_derive::napi;
@@ -123,6 +123,15 @@ impl RusqliteInterruptHandle {
 }
 
 #[napi]
+pub fn execute_batch(external: &External<RusqliteConnection>, sql: String) -> napi::Result<()> {
+  external
+    .connection
+    .execute_batch(&sql)
+    .map_err(RusqliteError::from)?;
+  Ok(())
+}
+
+#[napi]
 impl RusqliteSharedConnection<'_> {
   #[napi]
   pub fn backup(
@@ -134,7 +143,7 @@ impl RusqliteSharedConnection<'_> {
     let mut new_connection = Connection::open(dst_path).map_err(RusqliteError::from)?;
 
     let backup = Backup::new_with_names(
-      &self.connection,
+      self.connection,
       self.connection.path().unwrap(),
       &mut new_connection,
       &*name,
@@ -176,7 +185,7 @@ impl RusqliteSharedConnection<'_> {
     let mut new_connection = Connection::open(src_path).map_err(RusqliteError::from)?;
 
     let backup = Backup::new_with_names(
-      &self.connection,
+      self.connection,
       self.connection.path().unwrap(),
       &mut new_connection,
       &*name,
@@ -425,12 +434,21 @@ impl RusqliteSharedConnection<'_> {
   }
 
   #[napi]
-  pub fn unchecked_transaction(&mut self) -> napi::Result<RusqliteTransaction<'_>> {
-    let transaction = self
-      .connection
-      .unchecked_transaction()
-      .map_err(RusqliteError::from)?;
-    Ok(RusqliteTransaction { transaction })
+  pub fn unchecked_transaction(
+    &mut self,
+    env: Env,
+    reference: Reference<RusqliteConnection>,
+  ) -> napi::Result<RusqliteTransaction> {
+    Ok(RusqliteTransaction {
+      transaction: reference.share_with(env, |conn| {
+        Ok(
+          conn
+            .connection
+            .unchecked_transaction()
+            .map_err(RusqliteError::from)?,
+        )
+      })?,
+    })
   }
 
   #[napi]
@@ -518,8 +536,9 @@ impl RusqliteSharedConnection<'_> {
 
   #[napi]
   pub fn prepare(&self, sql: String) -> napi::Result<RusqliteStatement<'_>> {
-    let statement = self.connection.prepare(&sql).map_err(RusqliteError::from)?;
-    Ok(RusqliteStatement { statement })
+    Ok(RusqliteStatement {
+      statement: self.connection.prepare(&sql).map_err(RusqliteError::from)?,
+    })
   }
 
   #[napi]
@@ -528,11 +547,12 @@ impl RusqliteSharedConnection<'_> {
     sql: String,
     flags: RusqlitePrepFlags,
   ) -> napi::Result<RusqliteStatement<'_>> {
-    let statement = self
-      .connection
-      .prepare_with_flags(&sql, PrepFlags::from_bits(flags as u32).unwrap())
-      .map_err(RusqliteError::from)?;
-    Ok(RusqliteStatement { statement })
+    Ok(RusqliteStatement {
+      statement: self
+        .connection
+        .prepare_with_flags(&sql, PrepFlags::from_bits(flags as u32).unwrap())
+        .map_err(RusqliteError::from)?,
+    })
   }
 
   #[napi]
@@ -596,14 +616,19 @@ impl RusqliteSharedConnection<'_> {
 #[napi]
 impl RusqliteConnection {
   #[napi]
-  pub fn open(path: String, options: Option<RusqliteConnectionOptions>) -> napi::Result<Self> {
+  pub fn open(
+    path: String,
+    options: Option<RusqliteConnectionOptions>,
+  ) -> napi::Result<External<RusqliteConnection>> {
     let connection = rusqlite::Connection::open(&path).map_err(RusqliteError::from)?;
-    Ok(Self { connection })
+    Ok(External::new(Self { connection }))
   }
   #[napi]
-  pub fn open_in_memory(options: Option<RusqliteConnectionOptions>) -> napi::Result<Self> {
+  pub fn open_in_memory(
+    options: Option<RusqliteConnectionOptions>,
+  ) -> napi::Result<External<RusqliteConnection>> {
     let connection = rusqlite::Connection::open_in_memory().map_err(RusqliteError::from)?;
-    Ok(Self { connection })
+    Ok(External::new(Self { connection }))
   }
 
   #[napi]
@@ -907,50 +932,86 @@ impl RusqliteConnection {
   }
 
   #[napi]
-  pub fn transaction(&mut self) -> napi::Result<RusqliteTransaction<'_>> {
-    let transaction = self.connection.transaction().map_err(RusqliteError::from)?;
-    Ok(RusqliteTransaction { transaction })
+  pub fn transaction(
+    &mut self,
+    env: Env,
+    reference: Reference<RusqliteConnection>,
+  ) -> napi::Result<RusqliteTransaction> {
+    Ok(RusqliteTransaction {
+      transaction: reference.share_with(env, |conn| {
+        Ok(conn.connection.transaction().map_err(RusqliteError::from)?)
+      })?,
+    })
   }
 
   #[napi]
   pub fn transaction_with_behavior(
     &mut self,
+    env: Env,
+    reference: Reference<RusqliteConnection>,
     behavior: RusqliteTransactionBehavior,
-  ) -> napi::Result<RusqliteTransaction<'_>> {
-    let transaction = self
-      .connection
-      .transaction_with_behavior(behavior.into())
-      .map_err(RusqliteError::from)?;
-    Ok(RusqliteTransaction { transaction })
+  ) -> napi::Result<RusqliteTransaction> {
+    Ok(RusqliteTransaction {
+      transaction: reference.share_with(env, |conn| {
+        Ok(
+          conn
+            .connection
+            .transaction_with_behavior(behavior.into())
+            .map_err(RusqliteError::from)?,
+        )
+      })?,
+    })
   }
 
   #[napi]
-  pub fn unchecked_transaction(&mut self) -> napi::Result<RusqliteTransaction<'_>> {
-    let transaction = self
-      .connection
-      .unchecked_transaction()
-      .map_err(RusqliteError::from)?;
-    Ok(RusqliteTransaction { transaction })
+  pub fn unchecked_transaction(
+    &mut self,
+    env: Env,
+    reference: Reference<RusqliteConnection>,
+  ) -> napi::Result<RusqliteTransaction> {
+    Ok(RusqliteTransaction {
+      transaction: reference.share_with(env, |conn| {
+        Ok(
+          conn
+            .connection
+            .unchecked_transaction()
+            .map_err(RusqliteError::from)?,
+        )
+      })?,
+    })
   }
 
   #[napi]
-  pub fn savepoint(&mut self) -> napi::Result<RusqliteSavepoint<'_>> {
-    let savepoint = self.connection.savepoint().map_err(RusqliteError::from)?;
+  pub fn savepoint(
+    &mut self,
+    env: Env,
+    reference: Reference<RusqliteConnection>,
+  ) -> napi::Result<RusqliteSavepoint> {
     Ok(RusqliteSavepoint {
-      savepoint,
+      savepoint: reference.share_with(env, |conn| {
+        Ok(conn.connection.savepoint().map_err(RusqliteError::from)?)
+      })?,
       name: None,
       commited: false,
     })
   }
 
   #[napi]
-  pub fn savepoint_with_name(&mut self, name: String) -> napi::Result<RusqliteSavepoint<'_>> {
-    let savepoint = self
-      .connection
-      .savepoint_with_name(name.clone())
-      .map_err(RusqliteError::from)?;
+  pub fn savepoint_with_name(
+    &mut self,
+    env: Env,
+    reference: Reference<RusqliteConnection>,
+    name: String,
+  ) -> napi::Result<RusqliteSavepoint> {
     Ok(RusqliteSavepoint {
-      savepoint,
+      savepoint: reference.share_with(env, |conn| {
+        Ok(
+          conn
+            .connection
+            .savepoint_with_name(name.clone())
+            .map_err(RusqliteError::from)?,
+        )
+      })?,
       name: Some(name),
       commited: false,
     })
@@ -1049,9 +1110,10 @@ impl RusqliteConnection {
   }
 
   #[napi]
-  pub fn prepare(&self, sql: String) -> napi::Result<RusqliteStatement<'_>> {
-    let statement = self.connection.prepare(&sql).map_err(RusqliteError::from)?;
-    Ok(RusqliteStatement { statement })
+  pub fn prepare(&self, env: Env, sql: String) -> napi::Result<RusqliteStatement<'_>> {
+    Ok(RusqliteStatement {
+      statement: self.connection.prepare(&sql).map_err(RusqliteError::from)?,
+    })
   }
 
   #[napi]
@@ -1060,11 +1122,12 @@ impl RusqliteConnection {
     sql: String,
     flags: RusqlitePrepFlags,
   ) -> napi::Result<RusqliteStatement<'_>> {
-    let statement = self
-      .connection
-      .prepare_with_flags(&sql, PrepFlags::from_bits(flags as u32).unwrap())
-      .map_err(RusqliteError::from)?;
-    Ok(RusqliteStatement { statement })
+    Ok(RusqliteStatement {
+      statement: self
+        .connection
+        .prepare_with_flags(&sql, PrepFlags::from_bits(flags as u32).unwrap())
+        .map_err(RusqliteError::from)?,
+    })
   }
 
   #[napi]
@@ -1127,11 +1190,12 @@ impl RusqliteConnection {
 
 #[napi]
 impl ObjectFinalize for RusqliteConnection {
-  fn finalize(self, _env: Env) -> napi::Result<()> {
-    self
-      .connection
-      .close()
-      .map_err(|(_, err)| RusqliteError::from(err))?;
+  fn finalize(mut self, _env: Env) -> napi::Result<()> {
+    let conn = std::mem::replace(
+      &mut self.connection,
+      Connection::open_in_memory().map_err(RusqliteError::from)?,
+    );
+    conn.close().map_err(|(_, err)| RusqliteError::from(err))?;
     Ok(())
   }
 }

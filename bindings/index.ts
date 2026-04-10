@@ -180,9 +180,8 @@ export class Rusqlite {
   }
 
   queryAll<T>(sql:string,sqlParams?:unknown[]) {
-    const stmt = this.prepare(sql);
+    let stmt = this.prepare(sql);
     const result = stmt.query(sqlParams) as T[]
-    
     return result
   }
 
@@ -262,6 +261,7 @@ export class Statement {
   }
 
   execute(sqlParams?:unknown[]) {
+    this.stmt.clearBindings()
     const params = Serialization.serialize(sqlParams)
     return this.stmt.execute(params)
   }
