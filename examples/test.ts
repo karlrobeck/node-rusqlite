@@ -8,10 +8,10 @@ conn.executeBatch(`
     );
   `)
 
-conn.prepare("insert into users (name) values (?)",(statement) => {
+conn.prepare("insert into users (name) values (?) returning *",(statement) => {
   const names = ["john","jane","alex"]
   for(const name of names) {
-    statement.insert([name])
+    statement.query([name])
   }  
 })
 
@@ -19,4 +19,12 @@ conn.prepare("select name from users",(statement) => {
   const rows = statement.query([])
   console.log(rows.get(2))
   console.log(Array.from(rows.iterate()))
+})
+
+conn.transaction((trx) => {
+  const savepoint = trx.savepoint((sp1) => {
+    sp1.savepoint(sp2 => {
+      
+    })
+  })
 })

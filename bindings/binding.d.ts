@@ -91,6 +91,8 @@ export declare class ScopedConnection {
   pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): void
   pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): Buffer
   uncheckedTransaction(callback: (transaction: ScopedConnection) => void): void
+  savepoint(callback: (transaction: ScopedConnection) => void): void
+  savepointWithName(name: string, callback: (transaction: ScopedConnection) => void): void
   transactionState(dbName?: string | undefined | null): TransactionState
   executeBatch(sql: string): void
   execute(sql: string, sqlParams: unknown[]): number
