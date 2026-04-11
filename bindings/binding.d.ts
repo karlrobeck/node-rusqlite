@@ -62,7 +62,7 @@ export declare class Connection {
  * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods
  * @see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html#iterator-helper-methods
  */
-export declare class Rows extends Iterator<unknown, void, void> {
+export declare class RowIterator extends Iterator<unknown, void, void> {
   toJSON(): unknown
   next(value?: void): IteratorResult<unknown, void>
 }
@@ -116,7 +116,7 @@ export declare class ScopedStatement {
   columnMetadata(col: number): RusqliteDetailedColumnMetadata | null
   execute(params: Uint8Array): number
   insert(params: Uint8Array): number
-  query(params: unknown[]): Rows
+  query(params: unknown[]): RowIterator
   exists(params: Uint8Array): boolean
   parameterIndex(name: string): number | null
   parameterName(index: number): string | null
