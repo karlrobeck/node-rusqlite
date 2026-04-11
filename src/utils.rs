@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rusqlite::ToSql;
 use serde::Deserialize;
 
-use crate::row::RusqliteValueRef;
+use crate::row::ValueRef;
 
 #[derive(Deserialize, Default, Debug)]
 #[serde(untagged)]
@@ -43,7 +43,7 @@ pub fn row_to_buffer(row: &rusqlite::Row) -> Result<Vec<u8>, rusqlite::Error> {
 
   for column in row.as_ref().column_names() {
     let value = row.get_ref(column)?;
-    map.insert(column.to_string(), RusqliteValueRef(value));
+    map.insert(column.to_string(), ValueRef(value));
   }
 
   serde_json::to_vec(&map).map_err(|err| rusqlite::Error::ToSqlConversionFailure(Box::new(err)))

@@ -4,7 +4,7 @@ use rusqlite::{StatementStatus, params_from_iter};
 use crate::{
   column::{Column, ColumnMetadata},
   errors::NodeRusqliteError,
-  row::RusqliteRows,
+  row::Rows,
   utils::Value,
 };
 
@@ -187,7 +187,7 @@ impl ScopedStatement<'_> {
   }
 
   #[napi]
-  pub fn query(&mut self, params: &[u8]) -> napi::Result<RusqliteRows<'_>> {
+  pub fn query(&mut self, params: &[u8]) -> napi::Result<Rows<'_>> {
     let params = serde_json::from_slice::<Vec<Value>>(params)
       .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
@@ -197,7 +197,7 @@ impl ScopedStatement<'_> {
       .query(params_from_iter(params.iter()))
       .map_err(NodeRusqliteError::from)?;
 
-    Ok(RusqliteRows { rows })
+    Ok(Rows { rows })
   }
 
   #[napi]
