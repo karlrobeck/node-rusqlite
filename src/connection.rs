@@ -2,7 +2,7 @@ use std::{ops::Deref, sync::Arc, thread, time::Duration};
 
 use napi::{
   Env,
-  bindgen_prelude::{Buffer, External, ObjectFinalize, Reference},
+  bindgen_prelude::{Buffer, External, Function, ObjectFinalize, Reference},
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
 };
 use napi_derive::napi;
@@ -91,7 +91,7 @@ impl Deref for RusqliteConnection {
 }
 
 #[napi]
-pub struct RusqliteSharedConnection<'a> {
+pub struct ScopedConnection<'a> {
   pub(crate) connection: &'a rusqlite::Connection,
 }
 
@@ -130,7 +130,7 @@ pub fn execute_batch(external: &External<RusqliteConnection>, sql: String) -> na
 }
 
 #[napi]
-impl RusqliteSharedConnection<'_> {
+impl ScopedConnection<'_> {
   #[napi]
   pub fn backup(
     &self,
@@ -434,19 +434,23 @@ impl RusqliteSharedConnection<'_> {
   #[napi]
   pub fn unchecked_transaction(
     &mut self,
-    env: Env,
-    reference: Reference<RusqliteConnection>,
-  ) -> napi::Result<ScopedTransaction> {
-    Ok(ScopedTransaction {
-      transaction: reference.share_with(env, |conn| {
-        Ok(
-          conn
-            .connection
-            .unchecked_transaction()
-            .map_err(NodeRusqliteError::from)?,
-        )
-      })?,
-    })
+    callback: Function<ScopedTransaction>,
+  ) -> napi::Result<()> {
+    let transaction = self
+      .connection
+      .unchecked_transaction()
+      .map_err(NodeRusqliteError::from)?;
+
+    let scoped = ScopedTransaction {
+      transaction: &transaction,
+    };
+
+    match callback.call(scoped) {
+      Ok(_) => transaction.commit().map_err(NodeRusqliteError::from)?,
+      Err(_) => transaction.rollback().map_err(NodeRusqliteError::from)?,
+    }
+
+    Ok(())
   }
 
   #[napi]
@@ -932,59 +936,70 @@ impl RusqliteConnection {
     Ok(value.into())
   }
 
-  #[napi]
-  pub fn transaction(
-    &mut self,
-    env: Env,
-    reference: Reference<RusqliteConnection>,
-  ) -> napi::Result<ScopedTransaction> {
-    Ok(ScopedTransaction {
-      transaction: reference.share_with(env, |conn| {
-        Ok(
-          conn
-            .connection
-            .transaction()
-            .map_err(NodeRusqliteError::from)?,
-        )
-      })?,
-    })
+  #[napi(ts_args_type = "callback: (transaction: ScopedTransaction) => void")]
+  pub fn transaction(&mut self, callback: Function<ScopedTransaction>) -> napi::Result<()> {
+    let transaction = self
+      .connection
+      .transaction()
+      .map_err(NodeRusqliteError::from)?;
+
+    let scoped = ScopedTransaction {
+      transaction: &transaction,
+    };
+
+    match callback.call(scoped) {
+      Ok(_) => transaction.commit().map_err(NodeRusqliteError::from)?,
+      Err(_) => transaction.rollback().map_err(NodeRusqliteError::from)?,
+    };
+
+    Ok(())
   }
 
-  #[napi]
+  #[napi(
+    ts_args_type = "behavior: TransactionBehavior, callback: (transaction: ScopedTransaction) => void"
+  )]
   pub fn transaction_with_behavior(
     &mut self,
-    env: Env,
-    reference: Reference<RusqliteConnection>,
     behavior: TransactionBehavior,
-  ) -> napi::Result<ScopedTransaction> {
-    Ok(ScopedTransaction {
-      transaction: reference.share_with(env, |conn| {
-        Ok(
-          conn
-            .connection
-            .transaction_with_behavior(behavior.into())
-            .map_err(NodeRusqliteError::from)?,
-        )
-      })?,
-    })
+    callback: Function<ScopedTransaction>,
+  ) -> napi::Result<()> {
+    let transaction = self
+      .connection
+      .transaction_with_behavior(behavior.into())
+      .map_err(NodeRusqliteError::from)?;
+
+    let scoped = ScopedTransaction {
+      transaction: &transaction,
+    };
+
+    match callback.call(scoped) {
+      Ok(_) => transaction.commit().map_err(NodeRusqliteError::from)?,
+      Err(_) => transaction.rollback().map_err(NodeRusqliteError::from)?,
+    };
+
+    Ok(())
   }
 
-  #[napi]
+  #[napi(ts_args_type = "callback: (transaction: ScopedTransaction) => void")]
   pub fn unchecked_transaction(
     &mut self,
-    env: Env,
-    reference: Reference<RusqliteConnection>,
-  ) -> napi::Result<ScopedTransaction> {
-    Ok(ScopedTransaction {
-      transaction: reference.share_with(env, |conn| {
-        Ok(
-          conn
-            .connection
-            .unchecked_transaction()
-            .map_err(NodeRusqliteError::from)?,
-        )
-      })?,
-    })
+    callback: Function<ScopedTransaction>,
+  ) -> napi::Result<()> {
+    let transaction = self
+      .connection
+      .unchecked_transaction()
+      .map_err(NodeRusqliteError::from)?;
+
+    let scoped = ScopedTransaction {
+      transaction: &transaction,
+    };
+
+    match callback.call(scoped) {
+      Ok(_) => transaction.commit().map_err(NodeRusqliteError::from)?,
+      Err(_) => transaction.rollback().map_err(NodeRusqliteError::from)?,
+    };
+
+    Ok(())
   }
 
   #[napi]

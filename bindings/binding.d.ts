@@ -7,16 +7,28 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
-export declare class RusqliteColumn {
+export declare class Column {
   name(): string
   declType(): string | null
 }
 
-export declare class RusqliteColumnMetadata {
+export declare class ColumnMetadata {
   name(): string
   databaseName(): string | null
   tableName(): string | null
   originName(): string | null
+}
+
+/**
+ * This type extends JavaScript's `Iterator`, and so has the iterator helper
+ * methods. It may extend the upcoming TypeScript `Iterator` class in the future.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods
+ * @see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html#iterator-helper-methods
+ */
+export declare class Rows extends Iterator<unknown, void, void> {
+  toJSON(): string
+  next(value?: void): IteratorResult<unknown, void>
 }
 
 export declare class RusqliteConnection {
@@ -26,7 +38,7 @@ export declare class RusqliteConnection {
   restore(name: string, srcPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
   columnExists(dbName: string | undefined | null, tableName: string, columnName: string): boolean
   tableExists(dbName: string | undefined | null, tableName: string): boolean
-  columnMetadata(dbName: string | undefined | null, tableName: string, columnName: string): RusqliteConnectionColumnMetadata
+  columnMetadata(dbName: string | undefined | null, tableName: string, columnName: string): ConnectionColumnMetadata
   dbConfig(config: RusqliteDbConfig): void
   setDbConfig(config: RusqliteDbConfig, on: boolean): void
   pragmaQueryValue(schemaName: string | undefined | null, pragmaName: string): Buffer
@@ -34,13 +46,13 @@ export declare class RusqliteConnection {
   pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array, callback: ((err: Error | null, arg: Buffer) => any)): void
   pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): void
   pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): Buffer
-  transaction(): RusqliteTransaction
-  transactionWithBehavior(behavior: RusqliteTransactionBehavior): RusqliteTransaction
-  uncheckedTransaction(): RusqliteTransaction
-  savepoint(): RusqliteSavepoint
-  savepointWithName(name: string): RusqliteSavepoint
-  transactionState(dbName?: string | undefined | null): RusqliteTransactionState
-  setTransactionBehavior(behavior: RusqliteTransactionBehavior): void
+  transaction(callback: (transaction: ScopedTransaction) => void): void
+  transactionWithBehavior(behavior: TransactionBehavior, callback: (transaction: ScopedTransaction) => void): void
+  uncheckedTransaction(callback: (transaction: ScopedTransaction) => void): void
+  savepoint(): ScopedSavepoint
+  savepointWithName(name: string): ScopedSavepoint
+  transactionState(dbName?: string | undefined | null): TransactionState
+  setTransactionBehavior(behavior: TransactionBehavior): void
   executeBatch(sql: string): void
   execute(sql: string, sqlParams: Uint8Array): number
   path(): string
@@ -48,8 +60,8 @@ export declare class RusqliteConnection {
   lastInsertRowid(): number
   queryRow(sql: string, sqlParams: Uint8Array): Buffer
   queryOne(sql: string, sqlParams: Uint8Array): Buffer
-  prepare(sql: string): RusqliteStatement
-  prepareWithFlags(sql: string, flags: RusqlitePrepFlags): RusqliteStatement
+  prepare(sql: string): ScopedStatement
+  prepareWithFlags(sql: string, flags: RusqlitePrepFlags): ScopedStatement
   getInterruptHandle(): RusqliteInterruptHandle
   changes(): number
   totalChanges(): number
@@ -66,35 +78,12 @@ export declare class RusqliteInterruptHandle {
   interrupt(): void
 }
 
-/**
- * This type extends JavaScript's `Iterator`, and so has the iterator helper
- * methods. It may extend the upcoming TypeScript `Iterator` class in the future.
- *
- * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods
- * @see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html#iterator-helper-methods
- */
-export declare class RusqliteRows extends Iterator<Buffer, void, void> {
-
-  next(value?: void): IteratorResult<Buffer, void>
-}
-
-export declare class RusqliteSavepoint {
-  savepoint(reference: RusqliteConnection): RusqliteSavepoint
-  savepointWithName(reference: RusqliteConnection, name: string): RusqliteSavepoint
-  dropBehavior(): DropBehavior
-  setDropBehavior(dropBehavior: DropBehavior): void
-  commit(): void
-  rollback(): void
-  finish(): void
-  get connection(): RusqliteSharedConnection
-}
-
 export declare class RusqliteSharedConnection {
   backup(name: string, dstPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
   restore(name: string, srcPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
   columnExists(dbName: string | undefined | null, tableName: string, columnName: string): boolean
   tableExists(dbName: string | undefined | null, tableName: string): boolean
-  columnMetadata(dbName: string | undefined | null, tableName: string, columnName: string): RusqliteConnectionColumnMetadata
+  columnMetadata(dbName: string | undefined | null, tableName: string, columnName: string): ConnectionColumnMetadata
   dbConfig(config: RusqliteDbConfig): void
   setDbConfig(config: RusqliteDbConfig, on: boolean): void
   pragmaQueryValue(schemaName: string | undefined | null, pragmaName: string): Buffer
@@ -102,8 +91,8 @@ export declare class RusqliteSharedConnection {
   pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array, callback: ((err: Error | null, arg: Buffer) => any)): void
   pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): void
   pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): Buffer
-  uncheckedTransaction(reference: RusqliteConnection): RusqliteTransaction
-  transactionState(dbName?: string | undefined | null): RusqliteTransactionState
+  uncheckedTransaction(reference: RusqliteConnection): ScopedTransaction
+  transactionState(dbName?: string | undefined | null): TransactionState
   executeBatch(sql: string): void
   execute(sql: string, sqlParams: Uint8Array): number
   path(): string
@@ -111,8 +100,8 @@ export declare class RusqliteSharedConnection {
   lastInsertRowid(): number
   queryRow(sql: string, sqlParams: Uint8Array): Buffer
   queryOne(sql: string, sqlParams: Uint8Array): Buffer
-  prepare(sql: string): RusqliteStatement
-  prepareWithFlags(sql: string, flags: RusqlitePrepFlags): RusqliteStatement
+  prepare(sql: string): ScopedStatement
+  prepareWithFlags(sql: string, flags: RusqlitePrepFlags): ScopedStatement
   getInterruptHandle(): RusqliteInterruptHandle
   changes(): number
   totalChanges(): number
@@ -124,17 +113,28 @@ export declare class RusqliteSharedConnection {
   isInterrupted(): boolean
 }
 
-export declare class RusqliteStatement {
+export declare class ScopedSavepoint {
+  savepoint(reference: RusqliteConnection): ScopedSavepoint
+  savepointWithName(reference: RusqliteConnection, name: string): ScopedSavepoint
+  dropBehavior(): DropBehavior
+  setDropBehavior(dropBehavior: DropBehavior): void
+  commit(): void
+  rollback(): void
+  finish(): void
+  get connection(): RusqliteSharedConnection
+}
+
+export declare class ScopedStatement {
   columnNames(): Array<string>
   columnCount(): number
   columnName(col: number): string
   columnIndex(name: string): number
-  columns(): Array<RusqliteColumn>
-  columnsWithMetadata(): Array<RusqliteColumnMetadata>
+  columns(): Array<Column>
+  columnsWithMetadata(): Array<ColumnMetadata>
   columnMetadata(col: number): RusqliteDetailedColumnMetadata | null
   execute(params: Uint8Array): number
   insert(params: Uint8Array): number
-  query(params: Uint8Array): RusqliteRows
+  query(params: Uint8Array): Rows
   exists(params: Uint8Array): boolean
   parameterIndex(name: string): number | null
   parameterName(index: number): string | null
@@ -145,20 +145,21 @@ export declare class RusqliteStatement {
   isExplain(): number
   readonly(): boolean
   clearBindings(): void
-  [Symbol.dispose](): void
-
 }
 
-export declare class RusqliteTransaction {
+export declare class ScopedTransaction {
   /** savepoint */
-  savepoint(reference: RusqliteConnection): RusqliteSavepoint
-  savepointWithName(reference: RusqliteConnection, name: string): RusqliteSavepoint
-  dropBehavior(): DropBehavior
-  setDropBehavior(dropBehavior: DropBehavior): void
-  commit(): void
-  rollback(): void
-  finish(): void
+  savepoint(reference: RusqliteConnection): ScopedSavepoint
+  savepointWithName(reference: RusqliteConnection, name: string): ScopedSavepoint
   get connection(): RusqliteSharedConnection
+}
+
+export interface ConnectionColumnMetadata {
+  type?: string
+  collationSequence?: string
+  notNull: boolean
+  primaryKey: boolean
+  autoIncrement: boolean
 }
 
 export declare const enum DropBehavior {
@@ -173,14 +174,6 @@ export declare function executeBatch(external: ExternalObject<RusqliteConnection
 export interface Progress {
   remaining: number
   pageCount: number
-}
-
-export interface RusqliteConnectionColumnMetadata {
-  type?: string
-  collationSequence?: string
-  notNull: boolean
-  primaryKey: boolean
-  autoIncrement: boolean
 }
 
 export interface RusqliteConnectionOptions {
@@ -240,13 +233,13 @@ export declare const enum RusqliteStatementStatus {
   MemUsed = 99
 }
 
-export declare const enum RusqliteTransactionBehavior {
+export declare const enum TransactionBehavior {
   Deferred = 0,
   Immediate = 1,
   Exclusive = 2
 }
 
-export declare const enum RusqliteTransactionState {
+export declare const enum TransactionState {
   None = 0,
   Read = 1,
   Write = 2

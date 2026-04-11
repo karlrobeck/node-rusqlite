@@ -8,7 +8,7 @@ use napi_derive::napi;
 use rusqlite::{Connection, Transaction};
 
 use crate::{
-  connection::{RusqliteConnection, RusqliteSharedConnection},
+  connection::{RusqliteConnection, ScopedConnection},
   errors::NodeRusqliteError,
 };
 
@@ -67,12 +67,12 @@ impl From<rusqlite::TransactionState> for TransactionState {
 }
 
 #[napi]
-pub struct ScopedTransaction {
-  pub(crate) transaction: SharedReference<RusqliteConnection, Transaction<'static>>,
+pub struct ScopedTransaction<'a> {
+  pub(crate) transaction: &'a Transaction<'a>,
 }
 
 #[napi]
-impl ScopedTransaction {
+impl ScopedTransaction<'_> {
   /// savepoint
   #[napi]
   pub fn savepoint(
@@ -115,66 +115,15 @@ impl ScopedTransaction {
     })
   }
 
-  #[napi]
-  pub fn drop_behavior(&self) -> napi::Result<DropBehavior> {
-    let behavior = match self.transaction.drop_behavior() {
-      rusqlite::DropBehavior::Commit => DropBehavior::Commit,
-      rusqlite::DropBehavior::Ignore => DropBehavior::Ignore,
-      rusqlite::DropBehavior::Panic => DropBehavior::Panic,
-      rusqlite::DropBehavior::Rollback => DropBehavior::Rollback,
-      _ => panic!("undefined behavior"),
-    };
-
-    Ok(behavior)
-  }
-
-  #[napi]
-  pub fn set_drop_behavior(&mut self, drop_behavior: DropBehavior) -> napi::Result<()> {
-    self.transaction.set_drop_behavior(drop_behavior.into());
-    Ok(())
-  }
-
-  #[napi]
-  pub fn commit(&mut self) -> napi::Result<()> {
-    self
-      .transaction
-      .execute_batch("COMMIT")
-      .map_err(NodeRusqliteError::from)?;
-    Ok(())
-  }
-
-  #[napi]
-  pub fn rollback(&self) -> napi::Result<()> {
-    self
-      .transaction
-      .execute_batch("ROLLBACK")
-      .map_err(NodeRusqliteError::from)?;
-    Ok(())
-  }
-
-  #[napi]
-  pub fn finish(&mut self) -> napi::Result<()> {
-    if self.transaction.is_autocommit() {
-      return Ok(());
-    }
-
-    match self.drop_behavior()? {
-      DropBehavior::Commit => self.commit().or_else(|_| self.rollback()),
-      DropBehavior::Rollback => self.rollback(),
-      DropBehavior::Ignore => Ok(()),
-      DropBehavior::Panic => panic!("Transaction dropped unexpectedly."),
-    }
-  }
-
   #[napi(getter)]
-  pub fn connection(&self) -> napi::Result<RusqliteSharedConnection<'_>> {
-    Ok(RusqliteSharedConnection {
+  pub fn connection(&self) -> napi::Result<ScopedConnection<'_>> {
+    Ok(ScopedConnection {
       connection: self.transaction.deref(),
     })
   }
 }
 
-impl Deref for ScopedTransaction {
+impl Deref for ScopedTransaction<'_> {
   type Target = Connection;
 
   fn deref(&self) -> &Self::Target {
@@ -287,8 +236,8 @@ impl ScopedSavepoint {
   }
 
   #[napi(getter)]
-  pub fn connection(&self) -> napi::Result<RusqliteSharedConnection<'_>> {
-    Ok(RusqliteSharedConnection {
+  pub fn connection(&self) -> napi::Result<ScopedConnection<'_>> {
+    Ok(ScopedConnection {
       connection: self.savepoint.deref(),
     })
   }
