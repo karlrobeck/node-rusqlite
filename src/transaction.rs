@@ -165,20 +165,30 @@ impl ScopedSavepoint {
     &mut self,
     env: Env,
     reference: Reference<RusqliteConnection>,
-  ) -> napi::Result<ScopedSavepoint> {
-    // Ok(ScopedSavepoint {
-    //   savepoint: reference.share_with(env, |conn| {
-    //     Ok(
-    //       conn
-    //         .connection
-    //         .savepoint()
-    //         .map_err(NodeRusqliteError::from)?,
-    //     )
-    //   })?,
-    //   name: Some("_rusqlite_sp".to_string()),
-    //   commited: self.commited,
-    // })
-    todo!("")
+    callback: Function<ScopedSavepoint>,
+  ) -> napi::Result<()> {
+    let savepoint = self
+      .savepoint
+      .savepoint()
+      .map_err(NodeRusqliteError::from)?;
+
+    let scoped = ScopedSavepoint {
+      savepoint: reference.share_with(env, |conn| {
+        Ok(
+          conn
+            .connection
+            .savepoint()
+            .map_err(NodeRusqliteError::from)?,
+        )
+      })?,
+    };
+
+    match callback.call(scoped) {
+      Ok(_) => savepoint.commit().map_err(NodeRusqliteError::from)?,
+      Err(_) => savepoint.finish().map_err(NodeRusqliteError::from)?,
+    }
+
+    Ok(())
   }
 
   #[napi]
@@ -187,20 +197,30 @@ impl ScopedSavepoint {
     env: Env,
     reference: Reference<RusqliteConnection>,
     name: String,
-  ) -> napi::Result<ScopedSavepoint> {
-    // Ok(ScopedSavepoint {
-    //   savepoint: reference.share_with(env, |conn| {
-    //     Ok(
-    //       conn
-    //         .connection
-    //         .savepoint_with_name(name.clone())
-    //         .map_err(NodeRusqliteError::from)?,
-    //     )
-    //   })?,
-    //   name: Some(name),
-    //   commited: self.commited,
-    // })
-    todo!("")
+    callback: Function<ScopedSavepoint>,
+  ) -> napi::Result<()> {
+    let savepoint = self
+      .savepoint
+      .savepoint_with_name(name.clone())
+      .map_err(NodeRusqliteError::from)?;
+
+    let scoped = ScopedSavepoint {
+      savepoint: reference.share_with(env, |conn| {
+        Ok(
+          conn
+            .connection
+            .savepoint_with_name(name.clone())
+            .map_err(NodeRusqliteError::from)?,
+        )
+      })?,
+    };
+
+    match callback.call(scoped) {
+      Ok(_) => savepoint.commit().map_err(NodeRusqliteError::from)?,
+      Err(_) => savepoint.finish().map_err(NodeRusqliteError::from)?,
+    }
+
+    Ok(())
   }
 
   #[napi(getter)]
