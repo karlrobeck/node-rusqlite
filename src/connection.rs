@@ -465,7 +465,7 @@ impl ScopedConnection<'_> {
     let deref_conn = savepoint.deref();
 
     let scoped = ScopedConnection {
-      connection: savepoint.deref(),
+      connection: deref_conn,
     };
 
     match callback.call(scoped) {
