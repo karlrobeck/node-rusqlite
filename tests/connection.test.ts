@@ -1,13 +1,20 @@
 import {afterAll, describe, it} from "bun:test"
-import { Connection } from "../bindings/binding"
+import { Connection, OpenFlags } from "../bindings/binding"
 
 describe("open", () => {
   afterAll(async () => {
-    await Bun.file(`/tmp/node-rusqlite-test/path.db`).delete()
+    const file = Bun.file(`/tmp/node-rusqlite-test/path.db`);
+    if(await file.exists()) {
+      await Bun.file(`/tmp/node-rusqlite-test/path.db`).delete()
+    }
   })
 
   it("should open properly",() => {
-    const conn = Connection.open("/tmp/node-rusqlite-test/path.db");
+    const conn = Connection.open("/tmp/node-rusqlite-test/path.db", {
+      flags: OpenFlags.SqliteOpenCreate | OpenFlags.SqliteOpenReadwrite
+    });
+
+    const result = conn.queryOne('select sqlite_version',[])
   })
 })
 

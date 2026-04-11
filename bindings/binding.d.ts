@@ -13,10 +13,8 @@ export declare class ColumnMetadata {
 }
 
 export declare class Connection {
-  static open(path: string, options?: RusqliteConnectionOptions | undefined | null): Connection
-  static openInMemory(options?: RusqliteConnectionOptions | undefined | null): Connection
-  backup(name: string, dstPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
-  restore(name: string, srcPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
+  static open(path: string, options?: ConnectionOptions | undefined | null): Connection
+  static openInMemory(options?: ConnectionOptions | undefined | null): Connection
   columnExists(dbName: string | undefined | null, tableName: string, columnName: string): boolean
   tableExists(dbName: string | undefined | null, tableName: string): boolean
   columnMetadata(dbName: string | undefined | null, tableName: string, columnName: string): ConnectionColumnMetadata
@@ -78,8 +76,6 @@ export declare class Rows {
 }
 
 export declare class ScopedConnection {
-  backup(name: string, dstPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
-  restore(name: string, srcPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
   columnExists(dbName: string | undefined | null, tableName: string, columnName: string): boolean
   tableExists(dbName: string | undefined | null, tableName: string): boolean
   columnMetadata(dbName: string | undefined | null, tableName: string, columnName: string): ConnectionColumnMetadata
@@ -145,6 +141,11 @@ export interface ConnectionColumnMetadata {
   autoIncrement: boolean
 }
 
+export interface ConnectionOptions {
+  flags?: OpenFlags
+  vfs?: string
+}
+
 export declare const enum DropBehavior {
   Rollback = 0,
   Commit = 1,
@@ -152,14 +153,34 @@ export declare const enum DropBehavior {
   Panic = 3
 }
 
+export declare const enum OpenFlags {
+  SqliteOpenReadonly = 1,
+  SqliteOpenReadwrite = 2,
+  SqliteOpenCreate = 4,
+  SqliteOpenDELETEONCLOSE = 8,
+  SqliteOpenEXCLUSIVE = 16,
+  SqliteOpenAUTOPROXY = 32,
+  SqliteOpenURI = 64,
+  SqliteOpenMEMORY = 128,
+  SqliteOpenMainDb = 256,
+  SqliteOpenTempDb = 512,
+  SqliteOpenTransientDb = 1024,
+  SqliteOpenMainJournal = 2048,
+  SqliteOpenTempJournal = 4096,
+  SqliteOpenSubjournal = 8192,
+  SqliteOpenSuperJournal = 16384,
+  SqliteOpenNomutex = 32768,
+  SqliteOpenFullmutex = 65536,
+  SqliteOpenSharedcache = 131072,
+  SqliteOpenPrivatecache = 262144,
+  SqliteOpenWal = 524288,
+  SqliteOpenNofollow = 16777216,
+  SqliteOpenExrescode = 33554432
+}
+
 export interface Progress {
   remaining: number
   pageCount: number
-}
-
-export interface RusqliteConnectionOptions {
-  flags: number
-  vfs?: string
 }
 
 export declare const enum RusqliteDbConfig {
