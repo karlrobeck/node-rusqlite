@@ -134,7 +134,7 @@ impl ScopedConnection<'_> {
       rusqlite::Connection::open(dst_path).map_err(NodeRusqliteError::from)?;
 
     let backup = Backup::new_with_names(
-      &self.connection,
+      self.connection,
       self.connection.path().unwrap(),
       &mut new_connection,
       &*name,
@@ -997,10 +997,10 @@ impl Connection {
       .transaction()
       .map_err(NodeRusqliteError::from)?;
 
-    let mut deref_conn = transaction.deref();
+    let deref_conn = transaction.deref();
 
     let scoped = ScopedConnection {
-      connection: &mut deref_conn,
+      connection: deref_conn,
     };
 
     match callback.call(scoped) {
