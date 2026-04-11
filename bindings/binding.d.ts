@@ -142,7 +142,7 @@ export interface ConnectionColumnMetadata {
 }
 
 export interface ConnectionOptions {
-  flags?: OpenFlags
+  flags?: number
   vfs?: string
 }
 

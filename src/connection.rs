@@ -1,16 +1,11 @@
-use std::{ops::Deref, sync::Arc, thread, time::Duration};
+use std::{collections::HashMap, ops::Deref};
 
 use napi::{
-  Env,
-  bindgen_prelude::{Array, Buffer, Function, ObjectFinalize},
-  threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
+  Env, Unknown,
+  bindgen_prelude::{Array, Function, ObjectFinalize},
 };
 use napi_derive::napi;
-use rusqlite::{
-  PrepFlags,
-  backup::{Backup, StepResult},
-  params_from_iter,
-};
+use rusqlite::{PrepFlags, params_from_iter};
 
 use crate::{
   column::ConnectionColumnMetadata,
@@ -104,7 +99,7 @@ pub struct Progress {
 
 #[napi(object)]
 pub struct ConnectionOptions {
-  pub flags: Option<OpenFlags>,
+  pub flags: Option<i32>,
   pub vfs: Option<String>,
 }
 
@@ -226,9 +221,10 @@ impl ScopedConnection<'_> {
   #[napi]
   pub fn pragma_query_value(
     &self,
+    env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-  ) -> napi::Result<Buffer> {
+  ) -> napi::Result<Unknown<'_>> {
     let value = match schema_name {
       Some(schema_name) => {
         self
@@ -241,32 +237,33 @@ impl ScopedConnection<'_> {
     }
     .map_err(NodeRusqliteError::from)?;
 
-    Ok(value.into())
+    env.to_js_value(&value)
   }
 
   #[napi]
   pub fn pragma_query(
     &self,
+    env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-  ) -> napi::Result<Buffer> {
-    let mut buffer = vec![];
+  ) -> napi::Result<Unknown<'_>> {
+    let mut value = HashMap::new();
 
     match schema_name {
       Some(schema_name) => self
         .connection
         .pragma_query(Some(&*schema_name), &pragma_name, |row| {
-          buffer = row_to_unknown(row)?;
+          value = row_to_unknown(row)?;
           Ok(())
         }),
       None => self.connection.pragma_query(None, &pragma_name, |row| {
-        buffer = row_to_unknown(row)?;
+        value = row_to_unknown(row)?;
         Ok(())
       }),
     }
     .map_err(NodeRusqliteError::from)?;
 
-    Ok(buffer.into())
+    env.to_js_value(&value)
   }
 
   #[napi]
@@ -276,38 +273,30 @@ impl ScopedConnection<'_> {
     schema_name: Option<String>,
     pragma_name: String,
     pragma_value: Array,
-    callback: ThreadsafeFunction<Buffer>,
+    callback: Function<Unknown<'_>>,
   ) -> napi::Result<()> {
     let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
+    let mut value = HashMap::new();
 
     match schema_name {
       Some(schema_name) => {
         self
           .connection
           .pragma(Some(&*schema_name), &pragma_name, &sql_value, |row| {
-            let value_buffer = row_to_unknown(row)?;
-
-            callback.call(
-              Ok(value_buffer.into()),
-              ThreadsafeFunctionCallMode::NonBlocking,
-            );
+            value = row_to_unknown(row)?;
             Ok(())
           })
       }
       None => self
         .connection
         .pragma(None, &pragma_name, &sql_value, |row| {
-          let value_buffer = row_to_unknown(row)?;
-
-          callback.call(
-            Ok(value_buffer.into()),
-            ThreadsafeFunctionCallMode::NonBlocking,
-          );
-
+          value = row_to_unknown(row)?;
           Ok(())
         }),
     }
     .map_err(NodeRusqliteError::from)?;
+
+    callback.call(env.to_js_value(&value).expect("Unable to convert value"))?;
 
     Ok(())
   }
@@ -344,7 +333,7 @@ impl ScopedConnection<'_> {
     schema_name: Option<String>,
     pragma_name: String,
     pragma_value: Array,
-  ) -> napi::Result<Buffer> {
+  ) -> napi::Result<Unknown<'_>> {
     let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
 
     let value = match schema_name {
@@ -362,7 +351,7 @@ impl ScopedConnection<'_> {
     }
     .map_err(NodeRusqliteError::from)?;
 
-    Ok(value.into())
+    env.to_js_value(&value)
   }
 
   // #[napi(ts_args_type = "callback: (transaction: ScopedConnection) => void")]
@@ -488,7 +477,7 @@ impl ScopedConnection<'_> {
   }
 
   #[napi]
-  pub fn query_row(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<Buffer> {
+  pub fn query_row(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<Unknown<'_>> {
     let sql_params = env
       .from_js_value::<Vec<Value>, _>(sql_params)
       .unwrap_or_default();
@@ -498,11 +487,11 @@ impl ScopedConnection<'_> {
       .query_row(&sql, params_from_iter(sql_params.iter()), row_to_unknown)
       .map_err(NodeRusqliteError::from)?;
 
-    Ok(row.into())
+    env.to_js_value(&row)
   }
 
   #[napi]
-  pub fn query_one(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<Buffer> {
+  pub fn query_one(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<Unknown<'_>> {
     let sql_params = env
       .from_js_value::<Vec<Value>, _>(sql_params)
       .unwrap_or_default();
@@ -512,7 +501,7 @@ impl ScopedConnection<'_> {
       .query_one(&sql, params_from_iter(sql_params.iter()), row_to_unknown)
       .map_err(NodeRusqliteError::from)?;
 
-    Ok(row.into())
+    env.to_js_value(&row)
   }
 
   #[napi(ts_args_type = "sql:string, callback: (statement: ScopedStatement) => void")]
@@ -619,13 +608,13 @@ impl Connection {
       Some(option) => match (option.flags, option.vfs) {
         (Some(flags), Some(vfs)) => rusqlite::Connection::open_with_flags_and_vfs(
           &path,
-          rusqlite::OpenFlags::from_bits(flags as i32).unwrap(),
+          rusqlite::OpenFlags::from_bits(flags).unwrap(),
           &*vfs,
         )
         .map_err(NodeRusqliteError::from)?,
         (Some(flags), None) => rusqlite::Connection::open_with_flags(
           &path,
-          rusqlite::OpenFlags::from_bits(flags as i32).unwrap(),
+          rusqlite::OpenFlags::from_bits(flags).unwrap(),
         )
         .map_err(NodeRusqliteError::from)?,
         (None, Some(vfs)) => {
@@ -645,12 +634,12 @@ impl Connection {
     let connection = match options {
       Some(option) => match (option.flags, option.vfs) {
         (Some(flags), Some(vfs)) => rusqlite::Connection::open_in_memory_with_flags_and_vfs(
-          rusqlite::OpenFlags::from_bits(flags as i32).unwrap(),
+          rusqlite::OpenFlags::from_bits(flags).unwrap(),
           &*vfs,
         )
         .map_err(NodeRusqliteError::from)?,
         (Some(flags), None) => rusqlite::Connection::open_in_memory_with_flags(
-          rusqlite::OpenFlags::from_bits(flags as i32).unwrap(),
+          rusqlite::OpenFlags::from_bits(flags).unwrap(),
         )
         .map_err(NodeRusqliteError::from)?,
         (None, Some(vfs)) => rusqlite::Connection::open_in_memory_with_flags_and_vfs(
@@ -743,9 +732,10 @@ impl Connection {
   #[napi]
   pub fn pragma_query_value(
     &self,
+    env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-  ) -> napi::Result<Buffer> {
+  ) -> napi::Result<Unknown<'_>> {
     let value = match schema_name {
       Some(schema_name) => {
         self
@@ -758,32 +748,33 @@ impl Connection {
     }
     .map_err(NodeRusqliteError::from)?;
 
-    Ok(value.into())
+    env.to_js_value(&value)
   }
 
   #[napi]
   pub fn pragma_query(
     &self,
+    env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-  ) -> napi::Result<Buffer> {
-    let mut buffer = vec![];
+  ) -> napi::Result<Unknown<'_>> {
+    let mut value = HashMap::new();
 
     match schema_name {
       Some(schema_name) => self
         .connection
         .pragma_query(Some(&*schema_name), &pragma_name, |row| {
-          buffer = row_to_unknown(row)?;
+          value = row_to_unknown(row)?;
           Ok(())
         }),
       None => self.connection.pragma_query(None, &pragma_name, |row| {
-        buffer = row_to_unknown(row)?;
+        value = row_to_unknown(row)?;
         Ok(())
       }),
     }
     .map_err(NodeRusqliteError::from)?;
 
-    Ok(buffer.into())
+    env.to_js_value(&value)
   }
 
   #[napi]
@@ -793,38 +784,32 @@ impl Connection {
     schema_name: Option<String>,
     pragma_name: String,
     pragma_value: Array,
-    callback: ThreadsafeFunction<Buffer>,
+    callback: Function<Unknown<'_>>,
   ) -> napi::Result<()> {
     let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
+    let mut value = HashMap::new();
 
     match schema_name {
       Some(schema_name) => {
         self
           .connection
           .pragma(Some(&*schema_name), &pragma_name, &sql_value, |row| {
-            let value_buffer = row_to_unknown(row)?;
+            value = row_to_unknown(row)?;
 
-            callback.call(
-              Ok(value_buffer.into()),
-              ThreadsafeFunctionCallMode::NonBlocking,
-            );
             Ok(())
           })
       }
       None => self
         .connection
         .pragma(None, &pragma_name, &sql_value, |row| {
-          let value_buffer = row_to_unknown(row)?;
-
-          callback.call(
-            Ok(value_buffer.into()),
-            ThreadsafeFunctionCallMode::NonBlocking,
-          );
+          value = row_to_unknown(row)?;
 
           Ok(())
         }),
     }
     .map_err(NodeRusqliteError::from)?;
+
+    callback.call(env.to_js_value(&value)?)?;
 
     Ok(())
   }
@@ -861,7 +846,7 @@ impl Connection {
     schema_name: Option<String>,
     pragma_name: String,
     pragma_value: Array,
-  ) -> napi::Result<Buffer> {
+  ) -> napi::Result<Unknown<'_>> {
     let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
 
     let value = match schema_name {
@@ -879,7 +864,7 @@ impl Connection {
     }
     .map_err(NodeRusqliteError::from)?;
 
-    Ok(value.into())
+    env.to_js_value(&value)
   }
 
   #[napi(ts_args_type = "callback: (connection: ScopedConnection) => void")]
@@ -1058,8 +1043,8 @@ impl Connection {
     Ok(self.connection.last_insert_rowid())
   }
 
-  #[napi]
-  pub fn query_row(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<Buffer> {
+  #[napi(ts_return_type = "Record<string,unknown>")]
+  pub fn query_row(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<Unknown<'_>> {
     let sql_params = env
       .from_js_value::<Vec<Value>, _>(sql_params)
       .unwrap_or_default();
@@ -1069,11 +1054,11 @@ impl Connection {
       .query_row(&sql, params_from_iter(sql_params.iter()), row_to_unknown)
       .map_err(NodeRusqliteError::from)?;
 
-    Ok(row.into())
+    env.to_js_value(&row)
   }
 
-  #[napi]
-  pub fn query_one(&self, env: Env, sql: String, params: Array) -> napi::Result<Buffer> {
+  #[napi(ts_return_type = "Record<string,unknown>")]
+  pub fn query_one(&self, env: Env, sql: String, params: Array) -> napi::Result<Unknown<'_>> {
     let sql_params = env
       .from_js_value::<Vec<Value>, _>(params)
       .unwrap_or_default();
@@ -1083,7 +1068,7 @@ impl Connection {
       .query_one(&sql, params_from_iter(sql_params.iter()), row_to_unknown)
       .map_err(NodeRusqliteError::from)?;
 
-    Ok(row.into())
+    env.to_js_value(&row)
   }
 
   #[napi(ts_args_type = "sql: String, callback: (statement: ScopedStatement) => void")]

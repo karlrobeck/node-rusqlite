@@ -26,7 +26,7 @@ impl ToSql for Value {
   }
 }
 
-pub fn row_to_unknown(row: &rusqlite::Row) -> Result<Vec<u8>, rusqlite::Error> {
+pub fn row_to_unknown(row: &rusqlite::Row) -> Result<HashMap<String, Value>, rusqlite::Error> {
   let mut map = HashMap::new();
 
   for column in row.as_ref().column_names() {
@@ -34,5 +34,5 @@ pub fn row_to_unknown(row: &rusqlite::Row) -> Result<Vec<u8>, rusqlite::Error> {
     map.insert(column.to_string(), Value::from(ValueRef(value)));
   }
 
-  serde_json::to_vec(&map).map_err(|err| rusqlite::Error::ToSqlConversionFailure(Box::new(err)))
+  Ok(map)
 }
