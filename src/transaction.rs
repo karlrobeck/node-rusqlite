@@ -134,19 +134,6 @@ impl ScopedTransaction {
       Err(_) => savepoint.finish().map_err(NodeRusqliteError::from)?,
     }
 
-    // Ok(ScopedSavepoint {
-    //   savepoint: reference.share_with(env, |conn| {
-    //     Ok(
-    //       conn
-    //         .connection
-    //         .savepoint_with_name(name.clone())
-    //         .map_err(NodeRusqliteError::from)?,
-    //     )
-    //   })?,
-    //   name: Some(name),
-    //   commited: false,
-    // })
-
     Ok(())
   }
 
