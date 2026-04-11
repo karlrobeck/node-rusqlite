@@ -17,7 +17,7 @@ use crate::{
   errors::NodeRusqliteError,
   statement::{RusqlitePrepFlags, ScopedStatement},
   transaction::{
-    RusqliteSavepoint, RusqliteTransaction, RusqliteTransactionBehavior, RusqliteTransactionState,
+    RusqliteSavepoint, ScopedTransaction, TransactionBehavior, TransactionState,
   },
   utils::{RusqliteValue, row_to_buffer},
 };
@@ -438,8 +438,8 @@ impl RusqliteSharedConnection<'_> {
     &mut self,
     env: Env,
     reference: Reference<RusqliteConnection>,
-  ) -> napi::Result<RusqliteTransaction> {
-    Ok(RusqliteTransaction {
+  ) -> napi::Result<ScopedTransaction> {
+    Ok(ScopedTransaction {
       transaction: reference.share_with(env, |conn| {
         Ok(
           conn
@@ -455,7 +455,7 @@ impl RusqliteSharedConnection<'_> {
   pub fn transaction_state(
     &self,
     db_name: Option<String>,
-  ) -> napi::Result<RusqliteTransactionState> {
+  ) -> napi::Result<TransactionState> {
     let state = self
       .connection
       .transaction_state(db_name.as_deref())
@@ -942,8 +942,8 @@ impl RusqliteConnection {
     &mut self,
     env: Env,
     reference: Reference<RusqliteConnection>,
-  ) -> napi::Result<RusqliteTransaction> {
-    Ok(RusqliteTransaction {
+  ) -> napi::Result<ScopedTransaction> {
+    Ok(ScopedTransaction {
       transaction: reference.share_with(env, |conn| {
         Ok(
           conn
@@ -960,9 +960,9 @@ impl RusqliteConnection {
     &mut self,
     env: Env,
     reference: Reference<RusqliteConnection>,
-    behavior: RusqliteTransactionBehavior,
-  ) -> napi::Result<RusqliteTransaction> {
-    Ok(RusqliteTransaction {
+    behavior: TransactionBehavior,
+  ) -> napi::Result<ScopedTransaction> {
+    Ok(ScopedTransaction {
       transaction: reference.share_with(env, |conn| {
         Ok(
           conn
@@ -979,8 +979,8 @@ impl RusqliteConnection {
     &mut self,
     env: Env,
     reference: Reference<RusqliteConnection>,
-  ) -> napi::Result<RusqliteTransaction> {
-    Ok(RusqliteTransaction {
+  ) -> napi::Result<ScopedTransaction> {
+    Ok(ScopedTransaction {
       transaction: reference.share_with(env, |conn| {
         Ok(
           conn
@@ -1037,7 +1037,7 @@ impl RusqliteConnection {
   pub fn transaction_state(
     &self,
     db_name: Option<String>,
-  ) -> napi::Result<RusqliteTransactionState> {
+  ) -> napi::Result<TransactionState> {
     let state = self
       .connection
       .transaction_state(db_name.as_deref())
@@ -1049,7 +1049,7 @@ impl RusqliteConnection {
   #[napi]
   pub fn set_transaction_behavior(
     &mut self,
-    behavior: RusqliteTransactionBehavior,
+    behavior: TransactionBehavior,
   ) -> napi::Result<()> {
     self.connection.set_transaction_behavior(behavior.into());
     Ok(())

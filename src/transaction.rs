@@ -13,14 +13,14 @@ use crate::{
 };
 
 #[napi]
-pub enum RusqliteTransactionState {
+pub enum TransactionState {
   None,
   Read,
   Write,
 }
 
 #[napi]
-pub enum RusqliteTransactionBehavior {
+pub enum TransactionBehavior {
   Deferred,
   Immediate,
   Exclusive,
@@ -34,12 +34,12 @@ pub enum DropBehavior {
   Panic,
 }
 
-impl From<RusqliteTransactionBehavior> for rusqlite::TransactionBehavior {
-  fn from(value: RusqliteTransactionBehavior) -> Self {
+impl From<TransactionBehavior> for rusqlite::TransactionBehavior {
+  fn from(value: TransactionBehavior) -> Self {
     match value {
-      RusqliteTransactionBehavior::Deferred => Self::Deferred,
-      RusqliteTransactionBehavior::Exclusive => Self::Exclusive,
-      RusqliteTransactionBehavior::Immediate => Self::Immediate,
+      TransactionBehavior::Deferred => Self::Deferred,
+      TransactionBehavior::Exclusive => Self::Exclusive,
+      TransactionBehavior::Immediate => Self::Immediate,
     }
   }
 }
@@ -55,7 +55,7 @@ impl From<DropBehavior> for rusqlite::DropBehavior {
   }
 }
 
-impl From<rusqlite::TransactionState> for RusqliteTransactionState {
+impl From<rusqlite::TransactionState> for TransactionState {
   fn from(value: rusqlite::TransactionState) -> Self {
     match value {
       rusqlite::TransactionState::None => Self::None,
@@ -67,12 +67,12 @@ impl From<rusqlite::TransactionState> for RusqliteTransactionState {
 }
 
 #[napi]
-pub struct RusqliteTransaction {
+pub struct ScopedTransaction {
   pub(crate) transaction: SharedReference<RusqliteConnection, Transaction<'static>>,
 }
 
 #[napi]
-impl RusqliteTransaction {
+impl ScopedTransaction {
   /// savepoint
   #[napi]
   pub fn savepoint(
@@ -174,7 +174,7 @@ impl RusqliteTransaction {
   }
 }
 
-impl Deref for RusqliteTransaction {
+impl Deref for ScopedTransaction {
   type Target = Connection;
 
   fn deref(&self) -> &Self::Target {

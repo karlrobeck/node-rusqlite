@@ -1,6 +1,3 @@
-use std::{mem, ptr};
-
-use napi::bindgen_prelude::{ObjectFinalize, SharedReference};
 use napi_derive::napi;
 use rusqlite::{StatementStatus, params_from_iter};
 
@@ -10,10 +7,6 @@ use crate::{
   row::RusqliteRows,
   utils::RusqliteValue,
 };
-
-fn statement_not_exist() -> napi::Error {
-  napi::Error::new(napi::Status::GenericFailure, "Statement does not exist")
-}
 
 #[napi]
 pub enum RusqliteStatementStatus {
