@@ -995,8 +995,6 @@ impl Connection {
   #[napi(ts_args_type = "callback: (connection: ScopedConnection) => void")]
   pub fn unchecked_transaction(
     &mut self,
-    env: Env,
-    reference: Reference<Connection>,
     callback: Function<ScopedConnection>,
   ) -> napi::Result<()> {
     let transaction = self

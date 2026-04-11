@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use rusqlite::ToSql;
-use serde::Deserialize;
 
 use crate::row::{Value, ValueRef};
 

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use napi::{Env, Unknown, bindgen_prelude::FromNapiValue, iterator::ScopedGenerator};
+use napi::{Env, Unknown, iterator::ScopedGenerator};
 use napi_derive::napi;
 use serde::{Deserialize, Serialize};
 
@@ -8,7 +8,7 @@ use crate::errors::NodeRusqliteError;
 
 pub struct ValueRef<'a>(pub(crate) rusqlite::types::ValueRef<'a>);
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Value {
   Null,
@@ -16,21 +16,6 @@ pub enum Value {
   Real(f64),
   Text(String),
   Blob(Vec<u8>),
-}
-
-impl Serialize for Value {
-  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: serde::Serializer,
-  {
-    match &self {
-      Value::Null => serializer.serialize_none(),
-      Value::Integer(i) => serializer.serialize_i64(*i),
-      Value::Real(f) => serializer.serialize_f64(*f),
-      Value::Text(s) => serializer.serialize_str(&s),
-      Value::Blob(b) => serializer.serialize_bytes(&b),
-    }
-  }
 }
 
 impl From<ValueRef<'_>> for Value {
@@ -83,23 +68,47 @@ impl Rows {
 
   #[napi]
   pub fn iterate(&mut self) -> RowIterator<'_> {
-    RowIterator { rows: &self.rows }
+    RowIterator {
+      rows: &self.rows,
+      next: 0,
+    }
+  }
+
+  #[napi]
+  pub fn get(&self, env: Env, index: i64) -> napi::Result<Option<Unknown<'_>>> {
+    let row = self.rows.get(index as usize);
+
+    if let Some(row) = row {
+      let metadata = env.to_js_value(&row)?;
+      Ok(Some(metadata))
+    } else {
+      Ok(None)
+    }
   }
 }
 
 #[napi(iterator)]
 pub struct RowIterator<'a> {
+  next: usize,
   pub(crate) rows: &'a Vec<HashMap<String, Value>>,
 }
 
 #[napi]
 impl<'a> ScopedGenerator<'a> for RowIterator<'a> {
   type Next = i64;
-  type Return = ();
+  type Return = i64;
   type Yield = Unknown<'a>;
 
   fn next(&mut self, env: &'a napi::Env, value: Option<Self::Next>) -> Option<Self::Yield> {
-    let row = self.rows.get(value.unwrap() as usize)?.clone();
+    let index = match value {
+      Some(index) => index as usize,
+      None => self.next,
+    };
+
+    let row = self.rows.get(index)?;
+
+    self.next += 1;
+
     env.to_js_value(&row).ok()
   }
 }

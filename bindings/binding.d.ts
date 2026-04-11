@@ -24,9 +24,9 @@ export declare class Connection {
   setDbConfig(config: RusqliteDbConfig, on: boolean): void
   pragmaQueryValue(schemaName: string | undefined | null, pragmaName: string): Buffer
   pragmaQuery(schemaName: string | undefined | null, pragmaName: string): Buffer
-  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array, callback: ((err: Error | null, arg: Buffer) => any)): void
-  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): void
-  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): Buffer
+  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[], callback: ((err: Error | null, arg: Buffer) => any)): void
+  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): void
+  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): Buffer
   transaction(callback: (connection: ScopedConnection) => void): void
   transactionWithBehavior(behavior: TransactionBehavior, callback: (connection: ScopedConnection) => void): void
   uncheckedTransaction(callback: (connection: ScopedConnection) => void): void
@@ -35,12 +35,12 @@ export declare class Connection {
   transactionState(dbName?: string | undefined | null): TransactionState
   setTransactionBehavior(behavior: TransactionBehavior): void
   executeBatch(sql: string): void
-  execute(sql: string, sqlParams: Uint8Array): number
+  execute(sql: string, sqlParams: unknown[]): number
   path(): string
   releaseMemory(): void
   lastInsertRowid(): number
-  queryRow(sql: string, sqlParams: Uint8Array): Buffer
-  queryOne(sql: string, sqlParams: Uint8Array): Buffer
+  queryRow(sql: string, sqlParams: unknown[]): Buffer
+  queryOne(sql: string, params: unknown[]): Buffer
   prepare(sql: String, callback: (statement: ScopedStatement) => void): void
   prepareWithFlags(sql: string, flags: RusqlitePrepFlags, callback: any): void
   getInterruptHandle(): RusqliteInterruptHandle
@@ -62,9 +62,15 @@ export declare class Connection {
  * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods
  * @see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html#iterator-helper-methods
  */
-export declare class RowIterator extends Iterator<unknown, void, void> {
+export declare class RowIterator extends Iterator<unknown, number, number> {
+
+  next(value?: number): IteratorResult<unknown, number>
+}
+
+export declare class Rows {
   toJSON(): unknown
-  next(value?: void): IteratorResult<unknown, void>
+  iterate(): RowIterator
+  get(index: number): unknown | null
 }
 
 export declare class RusqliteInterruptHandle {
@@ -81,18 +87,18 @@ export declare class ScopedConnection {
   setDbConfig(config: RusqliteDbConfig, on: boolean): void
   pragmaQueryValue(schemaName: string | undefined | null, pragmaName: string): Buffer
   pragmaQuery(schemaName: string | undefined | null, pragmaName: string): Buffer
-  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array, callback: ((err: Error | null, arg: Buffer) => any)): void
-  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): void
-  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): Buffer
+  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[], callback: ((err: Error | null, arg: Buffer) => any)): void
+  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): void
+  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): Buffer
   uncheckedTransaction(callback: (transaction: ScopedConnection) => void): void
   transactionState(dbName?: string | undefined | null): TransactionState
   executeBatch(sql: string): void
-  execute(sql: string, sqlParams: Uint8Array): number
+  execute(sql: string, sqlParams: unknown[]): number
   path(): string
   releaseMemory(): void
   lastInsertRowid(): number
-  queryRow(sql: string, sqlParams: Uint8Array): Buffer
-  queryOne(sql: string, sqlParams: Uint8Array): Buffer
+  queryRow(sql: string, sqlParams: unknown[]): Buffer
+  queryOne(sql: string, sqlParams: unknown[]): Buffer
   prepare(sql:string, callback: (statement: ScopedStatement) => void): void
   prepareWithFlags(sql:string, flags: RusqlitePrepFlags, callback: (statement: ScopedStatement) => void): void
   getInterruptHandle(): RusqliteInterruptHandle
@@ -114,10 +120,10 @@ export declare class ScopedStatement {
   columns(): Array<Column>
   columnsWithMetadata(): Array<ColumnMetadata>
   columnMetadata(col: number): RusqliteDetailedColumnMetadata | null
-  execute(params: Uint8Array): number
-  insert(params: Uint8Array): number
-  query(params: unknown[]): RowIterator
-  exists(params: Uint8Array): boolean
+  execute(params: unknown[]): number
+  insert(params: unknown[]): number
+  query(params: unknown[]): Rows
+  exists(params: unknown[]): boolean
   parameterIndex(name: string): number | null
   parameterName(index: number): string | null
   parameterCount(): number
