@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use napi::{Unknown, iterator::ScopedGenerator};
 use napi_derive::napi;
-use rusqlite::fallible_streaming_iterator::FallibleStreamingIterator;
 use serde::Serialize;
 
 use crate::errors::NodeRusqliteError;
@@ -65,7 +64,7 @@ impl<'a> ScopedGenerator<'a> for Rows<'a> {
   type Return = ();
   type Yield = Unknown<'a>;
 
-  fn next(&mut self, env: &'a napi::Env, value: Option<Self::Next>) -> Option<Self::Yield> {
+  fn next(&mut self, env: &'a napi::Env, _value: Option<Self::Next>) -> Option<Self::Yield> {
     let next_row = self.rows.next().ok().unwrap_or_default()?;
 
     let mut value_map = HashMap::new();
