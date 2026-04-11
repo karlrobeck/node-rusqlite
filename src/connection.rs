@@ -16,10 +16,8 @@ use crate::{
   column::ConnectionColumnMetadata,
   errors::NodeRusqliteError,
   statement::{RusqlitePrepFlags, ScopedStatement},
-  transaction::{
-    RusqliteSavepoint, ScopedTransaction, TransactionBehavior, TransactionState,
-  },
-  utils::{RusqliteValue, row_to_buffer},
+  transaction::{ScopedSavepoint, ScopedTransaction, TransactionBehavior, TransactionState},
+  utils::{Value, row_to_buffer},
 };
 
 #[napi]
@@ -346,7 +344,7 @@ impl RusqliteSharedConnection<'_> {
     callback: ThreadsafeFunction<Buffer>,
   ) -> napi::Result<()> {
     let sql_value =
-      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(NodeRusqliteError::from)?;
+      serde_json::from_slice::<Value>(pragma_value).map_err(NodeRusqliteError::from)?;
 
     match schema_name {
       Some(schema_name) => {
@@ -388,7 +386,7 @@ impl RusqliteSharedConnection<'_> {
     pragma_value: &[u8],
   ) -> napi::Result<()> {
     let sql_value =
-      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(NodeRusqliteError::from)?;
+      serde_json::from_slice::<Value>(pragma_value).map_err(NodeRusqliteError::from)?;
 
     match schema_name {
       Some(schema_name) => {
@@ -413,7 +411,7 @@ impl RusqliteSharedConnection<'_> {
     pragma_value: &[u8],
   ) -> napi::Result<Buffer> {
     let sql_value =
-      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(NodeRusqliteError::from)?;
+      serde_json::from_slice::<Value>(pragma_value).map_err(NodeRusqliteError::from)?;
 
     let value = match schema_name {
       Some(schema_name) => self.connection.pragma_update_and_check(
@@ -452,10 +450,7 @@ impl RusqliteSharedConnection<'_> {
   }
 
   #[napi]
-  pub fn transaction_state(
-    &self,
-    db_name: Option<String>,
-  ) -> napi::Result<TransactionState> {
+  pub fn transaction_state(&self, db_name: Option<String>) -> napi::Result<TransactionState> {
     let state = self
       .connection
       .transaction_state(db_name.as_deref())
@@ -475,7 +470,7 @@ impl RusqliteSharedConnection<'_> {
 
   #[napi]
   pub fn execute(&self, sql: String, sql_params: &[u8]) -> napi::Result<i64> {
-    let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(sql_params)
+    let sql_params = serde_json::from_slice::<Vec<Value>>(sql_params)
       .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
@@ -508,7 +503,7 @@ impl RusqliteSharedConnection<'_> {
 
   #[napi]
   pub fn query_row(&self, sql: String, sql_params: &[u8]) -> napi::Result<Buffer> {
-    let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(sql_params)
+    let sql_params = serde_json::from_slice::<Vec<Value>>(sql_params)
       .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
@@ -522,7 +517,7 @@ impl RusqliteSharedConnection<'_> {
 
   #[napi]
   pub fn query_one(&self, sql: String, sql_params: &[u8]) -> napi::Result<Buffer> {
-    let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(sql_params)
+    let sql_params = serde_json::from_slice::<Vec<Value>>(sql_params)
       .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
@@ -850,7 +845,7 @@ impl RusqliteConnection {
     callback: ThreadsafeFunction<Buffer>,
   ) -> napi::Result<()> {
     let sql_value =
-      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(NodeRusqliteError::from)?;
+      serde_json::from_slice::<Value>(pragma_value).map_err(NodeRusqliteError::from)?;
 
     match schema_name {
       Some(schema_name) => {
@@ -892,7 +887,7 @@ impl RusqliteConnection {
     pragma_value: &[u8],
   ) -> napi::Result<()> {
     let sql_value =
-      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(NodeRusqliteError::from)?;
+      serde_json::from_slice::<Value>(pragma_value).map_err(NodeRusqliteError::from)?;
 
     match schema_name {
       Some(schema_name) => {
@@ -917,7 +912,7 @@ impl RusqliteConnection {
     pragma_value: &[u8],
   ) -> napi::Result<Buffer> {
     let sql_value =
-      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(NodeRusqliteError::from)?;
+      serde_json::from_slice::<Value>(pragma_value).map_err(NodeRusqliteError::from)?;
 
     let value = match schema_name {
       Some(schema_name) => self.connection.pragma_update_and_check(
@@ -997,8 +992,8 @@ impl RusqliteConnection {
     &mut self,
     env: Env,
     reference: Reference<RusqliteConnection>,
-  ) -> napi::Result<RusqliteSavepoint> {
-    Ok(RusqliteSavepoint {
+  ) -> napi::Result<ScopedSavepoint> {
+    Ok(ScopedSavepoint {
       savepoint: reference.share_with(env, |conn| {
         Ok(
           conn
@@ -1018,8 +1013,8 @@ impl RusqliteConnection {
     env: Env,
     reference: Reference<RusqliteConnection>,
     name: String,
-  ) -> napi::Result<RusqliteSavepoint> {
-    Ok(RusqliteSavepoint {
+  ) -> napi::Result<ScopedSavepoint> {
+    Ok(ScopedSavepoint {
       savepoint: reference.share_with(env, |conn| {
         Ok(
           conn
@@ -1034,10 +1029,7 @@ impl RusqliteConnection {
   }
 
   #[napi]
-  pub fn transaction_state(
-    &self,
-    db_name: Option<String>,
-  ) -> napi::Result<TransactionState> {
+  pub fn transaction_state(&self, db_name: Option<String>) -> napi::Result<TransactionState> {
     let state = self
       .connection
       .transaction_state(db_name.as_deref())
@@ -1047,10 +1039,7 @@ impl RusqliteConnection {
   }
 
   #[napi]
-  pub fn set_transaction_behavior(
-    &mut self,
-    behavior: TransactionBehavior,
-  ) -> napi::Result<()> {
+  pub fn set_transaction_behavior(&mut self, behavior: TransactionBehavior) -> napi::Result<()> {
     self.connection.set_transaction_behavior(behavior.into());
     Ok(())
   }
@@ -1066,7 +1055,7 @@ impl RusqliteConnection {
 
   #[napi]
   pub fn execute(&self, sql: String, sql_params: &[u8]) -> napi::Result<i64> {
-    let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(sql_params)
+    let sql_params = serde_json::from_slice::<Vec<Value>>(sql_params)
       .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
@@ -1099,7 +1088,7 @@ impl RusqliteConnection {
 
   #[napi]
   pub fn query_row(&self, sql: String, sql_params: &[u8]) -> napi::Result<Buffer> {
-    let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(sql_params)
+    let sql_params = serde_json::from_slice::<Vec<Value>>(sql_params)
       .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
@@ -1113,7 +1102,7 @@ impl RusqliteConnection {
 
   #[napi]
   pub fn query_one(&self, sql: String, sql_params: &[u8]) -> napi::Result<Buffer> {
-    let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(sql_params)
+    let sql_params = serde_json::from_slice::<Vec<Value>>(sql_params)
       .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 

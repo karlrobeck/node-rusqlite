@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
-use rusqlite::{ToSql, types::Value};
+use rusqlite::ToSql;
 use serde::Deserialize;
 
 use crate::row::RusqliteValueRef;
 
 #[derive(Deserialize, Default, Debug)]
 #[serde(untagged)]
-pub enum RusqliteValue {
+pub enum Value {
   #[default]
   Null,
   Integer(i64),
@@ -16,18 +16,24 @@ pub enum RusqliteValue {
   Blob(Vec<u8>),
 }
 
-impl ToSql for RusqliteValue {
+impl ToSql for Value {
   fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
     match self {
-      RusqliteValue::Null => Ok(rusqlite::types::ToSqlOutput::Owned(Value::Null)),
-      RusqliteValue::Integer(i) => Ok(rusqlite::types::ToSqlOutput::Owned(Value::Integer(*i))),
-      RusqliteValue::Real(f) => Ok(rusqlite::types::ToSqlOutput::Owned(Value::Real(*f))),
-      RusqliteValue::Text(s) => Ok(rusqlite::types::ToSqlOutput::Owned(Value::Text(
-        s.to_owned(),
-      ))),
-      RusqliteValue::Blob(b) => Ok(rusqlite::types::ToSqlOutput::Owned(Value::Blob(
-        b.to_owned(),
-      ))),
+      Value::Null => Ok(rusqlite::types::ToSqlOutput::Owned(
+        rusqlite::types::Value::Null,
+      )),
+      Value::Integer(i) => Ok(rusqlite::types::ToSqlOutput::Owned(
+        rusqlite::types::Value::Integer(*i),
+      )),
+      Value::Real(f) => Ok(rusqlite::types::ToSqlOutput::Owned(
+        rusqlite::types::Value::Real(*f),
+      )),
+      Value::Text(s) => Ok(rusqlite::types::ToSqlOutput::Owned(
+        rusqlite::types::Value::Text(s.to_owned()),
+      )),
+      Value::Blob(b) => Ok(rusqlite::types::ToSqlOutput::Owned(
+        rusqlite::types::Value::Blob(b.to_owned()),
+      )),
     }
   }
 }

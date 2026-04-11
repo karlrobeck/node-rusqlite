@@ -5,7 +5,7 @@ use crate::{
   column::{Column, ColumnMetadata},
   errors::NodeRusqliteError,
   row::RusqliteRows,
-  utils::RusqliteValue,
+  utils::Value,
 };
 
 #[napi]
@@ -160,7 +160,7 @@ impl ScopedStatement<'_> {
 
   #[napi]
   pub fn execute(&mut self, params: &[u8]) -> napi::Result<i64> {
-    let params = serde_json::from_slice::<Vec<RusqliteValue>>(params)
+    let params = serde_json::from_slice::<Vec<Value>>(params)
       .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
@@ -174,7 +174,7 @@ impl ScopedStatement<'_> {
 
   #[napi]
   pub fn insert(&mut self, params: &[u8]) -> napi::Result<i64> {
-    let params = serde_json::from_slice::<Vec<RusqliteValue>>(params)
+    let params = serde_json::from_slice::<Vec<Value>>(params)
       .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
@@ -188,7 +188,7 @@ impl ScopedStatement<'_> {
 
   #[napi]
   pub fn query(&mut self, params: &[u8]) -> napi::Result<RusqliteRows<'_>> {
-    let params = serde_json::from_slice::<Vec<RusqliteValue>>(params)
+    let params = serde_json::from_slice::<Vec<Value>>(params)
       .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
@@ -202,7 +202,7 @@ impl ScopedStatement<'_> {
 
   #[napi]
   pub fn exists(&mut self, params: &[u8]) -> napi::Result<bool> {
-    let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(params)
+    let sql_params = serde_json::from_slice::<Vec<Value>>(params)
       .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 

@@ -79,8 +79,8 @@ impl ScopedTransaction {
     &mut self,
     env: Env,
     reference: Reference<RusqliteConnection>,
-  ) -> napi::Result<RusqliteSavepoint> {
-    Ok(RusqliteSavepoint {
+  ) -> napi::Result<ScopedSavepoint> {
+    Ok(ScopedSavepoint {
       savepoint: reference.share_with(env, |conn| {
         Ok(
           conn
@@ -100,8 +100,8 @@ impl ScopedTransaction {
     env: Env,
     reference: Reference<RusqliteConnection>,
     name: String,
-  ) -> napi::Result<RusqliteSavepoint> {
-    Ok(RusqliteSavepoint {
+  ) -> napi::Result<ScopedSavepoint> {
+    Ok(ScopedSavepoint {
       savepoint: reference.share_with(env, |conn| {
         Ok(
           conn
@@ -183,21 +183,21 @@ impl Deref for ScopedTransaction {
 }
 
 #[napi]
-pub struct RusqliteSavepoint {
+pub struct ScopedSavepoint {
   pub(crate) savepoint: SharedReference<RusqliteConnection, rusqlite::Savepoint<'static>>,
   pub(crate) name: Option<String>,
   pub(crate) commited: bool,
 }
 
 #[napi]
-impl RusqliteSavepoint {
+impl ScopedSavepoint {
   #[napi]
   pub fn savepoint(
     &mut self,
     env: Env,
     reference: Reference<RusqliteConnection>,
-  ) -> napi::Result<RusqliteSavepoint> {
-    Ok(RusqliteSavepoint {
+  ) -> napi::Result<ScopedSavepoint> {
+    Ok(ScopedSavepoint {
       savepoint: reference.share_with(env, |conn| {
         Ok(
           conn
@@ -217,8 +217,8 @@ impl RusqliteSavepoint {
     env: Env,
     reference: Reference<RusqliteConnection>,
     name: String,
-  ) -> napi::Result<RusqliteSavepoint> {
-    Ok(RusqliteSavepoint {
+  ) -> napi::Result<ScopedSavepoint> {
+    Ok(ScopedSavepoint {
       savepoint: reference.share_with(env, |conn| {
         Ok(
           conn
