@@ -1,8 +1,8 @@
-use std::{ops::Deref, sync::Arc, thread, time::Duration};
+use std::{env, ops::Deref, sync::Arc, thread, time::Duration};
 
 use napi::{
   Env,
-  bindgen_prelude::{Buffer, External, Function, ObjectFinalize, Reference},
+  bindgen_prelude::{Array, Buffer, Function, ObjectFinalize, Reference},
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
 };
 use napi_derive::napi;
@@ -15,9 +15,10 @@ use rusqlite::{
 use crate::{
   column::ConnectionColumnMetadata,
   errors::NodeRusqliteError,
+  row::Value,
   statement::{RusqlitePrepFlags, ScopedStatement},
   transaction::{TransactionBehavior, TransactionState},
-  utils::{Value, row_to_buffer},
+  utils::row_to_unknown,
 };
 
 #[napi]
@@ -292,11 +293,11 @@ impl ScopedConnection<'_> {
       Some(schema_name) => {
         self
           .connection
-          .pragma_query_value(Some(&*schema_name), &pragma_name, row_to_buffer)
+          .pragma_query_value(Some(&*schema_name), &pragma_name, row_to_unknown)
       }
       None => self
         .connection
-        .pragma_query_value(None, &pragma_name, row_to_buffer),
+        .pragma_query_value(None, &pragma_name, row_to_unknown),
     }
     .map_err(NodeRusqliteError::from)?;
 
@@ -315,11 +316,11 @@ impl ScopedConnection<'_> {
       Some(schema_name) => self
         .connection
         .pragma_query(Some(&*schema_name), &pragma_name, |row| {
-          buffer = row_to_buffer(row)?;
+          buffer = row_to_unknown(row)?;
           Ok(())
         }),
       None => self.connection.pragma_query(None, &pragma_name, |row| {
-        buffer = row_to_buffer(row)?;
+        buffer = row_to_unknown(row)?;
         Ok(())
       }),
     }
@@ -331,20 +332,20 @@ impl ScopedConnection<'_> {
   #[napi]
   pub fn pragma(
     &self,
+    env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-    pragma_value: &[u8],
+    pragma_value: Array,
     callback: ThreadsafeFunction<Buffer>,
   ) -> napi::Result<()> {
-    let sql_value =
-      serde_json::from_slice::<Value>(pragma_value).map_err(NodeRusqliteError::from)?;
+    let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
 
     match schema_name {
       Some(schema_name) => {
         self
           .connection
           .pragma(Some(&*schema_name), &pragma_name, &sql_value, |row| {
-            let value_buffer = row_to_buffer(row)?;
+            let value_buffer = row_to_unknown(row)?;
 
             callback.call(
               Ok(value_buffer.into()),
@@ -356,7 +357,7 @@ impl ScopedConnection<'_> {
       None => self
         .connection
         .pragma(None, &pragma_name, &sql_value, |row| {
-          let value_buffer = row_to_buffer(row)?;
+          let value_buffer = row_to_unknown(row)?;
 
           callback.call(
             Ok(value_buffer.into()),
@@ -374,12 +375,12 @@ impl ScopedConnection<'_> {
   #[napi]
   pub fn pragma_update(
     &self,
+    env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-    pragma_value: &[u8],
+    pragma_value: Array,
   ) -> napi::Result<()> {
-    let sql_value =
-      serde_json::from_slice::<Value>(pragma_value).map_err(NodeRusqliteError::from)?;
+    let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
 
     match schema_name {
       Some(schema_name) => {
@@ -399,24 +400,24 @@ impl ScopedConnection<'_> {
   #[napi]
   pub fn pragma_update_and_check(
     &self,
+    env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-    pragma_value: &[u8],
+    pragma_value: Array,
   ) -> napi::Result<Buffer> {
-    let sql_value =
-      serde_json::from_slice::<Value>(pragma_value).map_err(NodeRusqliteError::from)?;
+    let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
 
     let value = match schema_name {
       Some(schema_name) => self.connection.pragma_update_and_check(
         Some(&*schema_name),
         &pragma_name,
         &sql_value,
-        row_to_buffer,
+        row_to_unknown,
       ),
       None => {
         self
           .connection
-          .pragma_update_and_check(None, &pragma_name, &sql_value, row_to_buffer)
+          .pragma_update_and_check(None, &pragma_name, &sql_value, row_to_unknown)
       }
     }
     .map_err(NodeRusqliteError::from)?;
@@ -468,9 +469,9 @@ impl ScopedConnection<'_> {
   }
 
   #[napi]
-  pub fn execute(&self, sql: String, sql_params: &[u8]) -> napi::Result<i64> {
-    let sql_params = serde_json::from_slice::<Vec<Value>>(sql_params)
-      .map_err(NodeRusqliteError::from)
+  pub fn execute(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<i64> {
+    let sql_params = env
+      .from_js_value::<Vec<Value>, _>(sql_params)
       .unwrap_or_default();
 
     let result = self
@@ -501,28 +502,28 @@ impl ScopedConnection<'_> {
   }
 
   #[napi]
-  pub fn query_row(&self, sql: String, sql_params: &[u8]) -> napi::Result<Buffer> {
-    let sql_params = serde_json::from_slice::<Vec<Value>>(sql_params)
-      .map_err(NodeRusqliteError::from)
+  pub fn query_row(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<Buffer> {
+    let sql_params = env
+      .from_js_value::<Vec<Value>, _>(sql_params)
       .unwrap_or_default();
 
     let row = self
       .connection
-      .query_row(&sql, params_from_iter(sql_params.iter()), row_to_buffer)
+      .query_row(&sql, params_from_iter(sql_params.iter()), row_to_unknown)
       .map_err(NodeRusqliteError::from)?;
 
     Ok(row.into())
   }
 
   #[napi]
-  pub fn query_one(&self, sql: String, sql_params: &[u8]) -> napi::Result<Buffer> {
-    let sql_params = serde_json::from_slice::<Vec<Value>>(sql_params)
-      .map_err(NodeRusqliteError::from)
+  pub fn query_one(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<Buffer> {
+    let sql_params = env
+      .from_js_value::<Vec<Value>, _>(sql_params)
       .unwrap_or_default();
 
     let row = self
       .connection
-      .query_one(&sql, params_from_iter(sql_params.iter()), row_to_buffer)
+      .query_one(&sql, params_from_iter(sql_params.iter()), row_to_unknown)
       .map_err(NodeRusqliteError::from)?;
 
     Ok(row.into())
@@ -811,11 +812,11 @@ impl Connection {
       Some(schema_name) => {
         self
           .connection
-          .pragma_query_value(Some(&*schema_name), &pragma_name, row_to_buffer)
+          .pragma_query_value(Some(&*schema_name), &pragma_name, row_to_unknown)
       }
       None => self
         .connection
-        .pragma_query_value(None, &pragma_name, row_to_buffer),
+        .pragma_query_value(None, &pragma_name, row_to_unknown),
     }
     .map_err(NodeRusqliteError::from)?;
 
@@ -834,11 +835,11 @@ impl Connection {
       Some(schema_name) => self
         .connection
         .pragma_query(Some(&*schema_name), &pragma_name, |row| {
-          buffer = row_to_buffer(row)?;
+          buffer = row_to_unknown(row)?;
           Ok(())
         }),
       None => self.connection.pragma_query(None, &pragma_name, |row| {
-        buffer = row_to_buffer(row)?;
+        buffer = row_to_unknown(row)?;
         Ok(())
       }),
     }
@@ -850,20 +851,20 @@ impl Connection {
   #[napi]
   pub fn pragma(
     &self,
+    env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-    pragma_value: &[u8],
+    pragma_value: Array,
     callback: ThreadsafeFunction<Buffer>,
   ) -> napi::Result<()> {
-    let sql_value =
-      serde_json::from_slice::<Value>(pragma_value).map_err(NodeRusqliteError::from)?;
+    let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
 
     match schema_name {
       Some(schema_name) => {
         self
           .connection
           .pragma(Some(&*schema_name), &pragma_name, &sql_value, |row| {
-            let value_buffer = row_to_buffer(row)?;
+            let value_buffer = row_to_unknown(row)?;
 
             callback.call(
               Ok(value_buffer.into()),
@@ -875,7 +876,7 @@ impl Connection {
       None => self
         .connection
         .pragma(None, &pragma_name, &sql_value, |row| {
-          let value_buffer = row_to_buffer(row)?;
+          let value_buffer = row_to_unknown(row)?;
 
           callback.call(
             Ok(value_buffer.into()),
@@ -893,12 +894,12 @@ impl Connection {
   #[napi]
   pub fn pragma_update(
     &self,
+    env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-    pragma_value: &[u8],
+    pragma_value: Array,
   ) -> napi::Result<()> {
-    let sql_value =
-      serde_json::from_slice::<Value>(pragma_value).map_err(NodeRusqliteError::from)?;
+    let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
 
     match schema_name {
       Some(schema_name) => {
@@ -918,24 +919,24 @@ impl Connection {
   #[napi]
   pub fn pragma_update_and_check(
     &self,
+    env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-    pragma_value: &[u8],
+    pragma_value: Array,
   ) -> napi::Result<Buffer> {
-    let sql_value =
-      serde_json::from_slice::<Value>(pragma_value).map_err(NodeRusqliteError::from)?;
+    let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
 
     let value = match schema_name {
       Some(schema_name) => self.connection.pragma_update_and_check(
         Some(&*schema_name),
         &pragma_name,
         &sql_value,
-        row_to_buffer,
+        row_to_unknown,
       ),
       None => {
         self
           .connection
-          .pragma_update_and_check(None, &pragma_name, &sql_value, row_to_buffer)
+          .pragma_update_and_check(None, &pragma_name, &sql_value, row_to_unknown)
       }
     }
     .map_err(NodeRusqliteError::from)?;
@@ -1089,9 +1090,9 @@ impl Connection {
   }
 
   #[napi]
-  pub fn execute(&self, sql: String, sql_params: &[u8]) -> napi::Result<i64> {
-    let sql_params = serde_json::from_slice::<Vec<Value>>(sql_params)
-      .map_err(NodeRusqliteError::from)
+  pub fn execute(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<i64> {
+    let sql_params = env
+      .from_js_value::<Vec<Value>, _>(sql_params)
       .unwrap_or_default();
 
     let result = self
@@ -1122,28 +1123,28 @@ impl Connection {
   }
 
   #[napi]
-  pub fn query_row(&self, sql: String, sql_params: &[u8]) -> napi::Result<Buffer> {
-    let sql_params = serde_json::from_slice::<Vec<Value>>(sql_params)
-      .map_err(NodeRusqliteError::from)
+  pub fn query_row(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<Buffer> {
+    let sql_params = env
+      .from_js_value::<Vec<Value>, _>(sql_params)
       .unwrap_or_default();
 
     let row = self
       .connection
-      .query_row(&sql, params_from_iter(sql_params.iter()), row_to_buffer)
+      .query_row(&sql, params_from_iter(sql_params.iter()), row_to_unknown)
       .map_err(NodeRusqliteError::from)?;
 
     Ok(row.into())
   }
 
   #[napi]
-  pub fn query_one(&self, sql: String, sql_params: &[u8]) -> napi::Result<Buffer> {
-    let sql_params = serde_json::from_slice::<Vec<Value>>(sql_params)
-      .map_err(NodeRusqliteError::from)
+  pub fn query_one(&self, env: Env, sql: String, params: Array) -> napi::Result<Buffer> {
+    let sql_params = env
+      .from_js_value::<Vec<Value>, _>(params)
       .unwrap_or_default();
 
     let row = self
       .connection
-      .query_one(&sql, params_from_iter(sql_params.iter()), row_to_buffer)
+      .query_one(&sql, params_from_iter(sql_params.iter()), row_to_unknown)
       .map_err(NodeRusqliteError::from)?;
 
     Ok(row.into())

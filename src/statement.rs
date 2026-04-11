@@ -8,8 +8,7 @@ use rusqlite::{StatementStatus, params_from_iter};
 use crate::{
   column::{Column, ColumnMetadata},
   errors::NodeRusqliteError,
-  row::RowIterator,
-  utils::Value,
+  row::{Rows, Value},
 };
 
 #[napi]
@@ -163,10 +162,8 @@ impl ScopedStatement<'_> {
   }
 
   #[napi]
-  pub fn execute(&mut self, params: &[u8]) -> napi::Result<i64> {
-    let params = serde_json::from_slice::<Vec<Value>>(params)
-      .map_err(NodeRusqliteError::from)
-      .unwrap_or_default();
+  pub fn execute(&mut self, env: Env, params: Array) -> napi::Result<i64> {
+    let params = env.from_js_value::<Vec<Value>, _>(params)?;
 
     let result = self
       .statement
@@ -177,10 +174,8 @@ impl ScopedStatement<'_> {
   }
 
   #[napi]
-  pub fn insert(&mut self, params: &[u8]) -> napi::Result<i64> {
-    let params = serde_json::from_slice::<Vec<Value>>(params)
-      .map_err(NodeRusqliteError::from)
-      .unwrap_or_default();
+  pub fn insert(&mut self, env: Env, params: Array) -> napi::Result<i64> {
+    let params = env.from_js_value::<Vec<Value>, _>(params)?;
 
     let result = self
       .statement
@@ -191,7 +186,7 @@ impl ScopedStatement<'_> {
   }
 
   #[napi]
-  pub fn query(&mut self, env: Env, params: Array) -> napi::Result<RowIterator<'_>> {
+  pub fn query(&mut self, env: Env, params: Array) -> napi::Result<Rows> {
     let params = env.from_js_value::<Vec<Value>, _>(params)?;
 
     let rows = self
@@ -199,14 +194,12 @@ impl ScopedStatement<'_> {
       .query(params_from_iter(params.iter()))
       .map_err(NodeRusqliteError::from)?;
 
-    Ok(RowIterator { rows })
+    Ok(Rows::new(rows))
   }
 
   #[napi]
-  pub fn exists(&mut self, params: &[u8]) -> napi::Result<bool> {
-    let sql_params = serde_json::from_slice::<Vec<Value>>(params)
-      .map_err(NodeRusqliteError::from)
-      .unwrap_or_default();
+  pub fn exists(&mut self, env: Env, params: Array) -> napi::Result<bool> {
+    let sql_params = env.from_js_value::<Vec<Value>, _>(params)?;
 
     let result = self
       .statement
