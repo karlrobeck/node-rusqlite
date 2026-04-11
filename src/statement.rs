@@ -8,7 +8,7 @@ use rusqlite::{StatementStatus, params_from_iter};
 use crate::{
   column::{Column, ColumnMetadata},
   errors::NodeRusqliteError,
-  row::Rows,
+  row::RowIterator,
   utils::Value,
 };
 
@@ -191,7 +191,7 @@ impl ScopedStatement<'_> {
   }
 
   #[napi]
-  pub fn query(&mut self, env: Env, params: Array) -> napi::Result<Rows<'_>> {
+  pub fn query(&mut self, env: Env, params: Array) -> napi::Result<RowIterator<'_>> {
     let params = env.from_js_value::<Vec<Value>, _>(params)?;
 
     let rows = self
@@ -199,7 +199,7 @@ impl ScopedStatement<'_> {
       .query(params_from_iter(params.iter()))
       .map_err(NodeRusqliteError::from)?;
 
-    Ok(Rows { rows })
+    Ok(RowIterator { rows })
   }
 
   #[napi]
