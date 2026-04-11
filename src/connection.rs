@@ -627,7 +627,7 @@ impl ScopedConnection<'_> {
 
 #[napi]
 impl Connection {
-  #[napi]
+  #[napi(factory)]
   pub fn open(
     path: String,
     options: Option<RusqliteConnectionOptions>,
@@ -636,7 +636,7 @@ impl Connection {
     Ok(Self { connection })
   }
 
-  #[napi]
+  #[napi(factory)]
   pub fn open_in_memory(options: Option<RusqliteConnectionOptions>) -> napi::Result<Connection> {
     let connection = rusqlite::Connection::open_in_memory().map_err(NodeRusqliteError::from)?;
     Ok(Self { connection })
