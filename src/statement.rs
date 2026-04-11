@@ -1,4 +1,7 @@
-use napi::bindgen_prelude::ObjectFinalize;
+use napi::{
+  Env,
+  bindgen_prelude::{Array, ObjectFinalize},
+};
 use napi_derive::napi;
 use rusqlite::{StatementStatus, params_from_iter};
 
@@ -188,10 +191,8 @@ impl ScopedStatement<'_> {
   }
 
   #[napi]
-  pub fn query(&mut self, params: &[u8]) -> napi::Result<Rows<'_>> {
-    let params = serde_json::from_slice::<Vec<Value>>(params)
-      .map_err(NodeRusqliteError::from)
-      .unwrap_or_default();
+  pub fn query(&mut self, env: Env, params: Array) -> napi::Result<Rows<'_>> {
+    let params = env.from_js_value::<Vec<Value>, _>(params)?;
 
     let rows = self
       .statement

@@ -579,16 +579,15 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { Column, ColumnMetadata, Rows, RusqliteConnection, RusqliteInterruptHandle, ScopedConnection, ScopedStatement, DropBehavior, executeBatch, RusqliteDbConfig, RusqlitePrepFlags, RusqliteStatementStatus, TransactionBehavior, TransactionState } = nativeBinding
+const { Column, ColumnMetadata, Connection, Rows, RusqliteInterruptHandle, ScopedConnection, ScopedStatement, DropBehavior, RusqliteDbConfig, RusqlitePrepFlags, RusqliteStatementStatus, TransactionBehavior, TransactionState } = nativeBinding
 export { Column }
 export { ColumnMetadata }
+export { Connection }
 export { Rows }
-export { RusqliteConnection }
 export { RusqliteInterruptHandle }
 export { ScopedConnection }
 export { ScopedStatement }
 export { DropBehavior }
-export { executeBatch }
 export { RusqliteDbConfig }
 export { RusqlitePrepFlags }
 export { RusqliteStatementStatus }

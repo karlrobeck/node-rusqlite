@@ -7,7 +7,7 @@ use napi::{
 };
 use napi_derive::napi;
 use rusqlite::{
-  Connection, InterruptHandle, PrepFlags,
+  InterruptHandle, PrepFlags,
   backup::{Backup, StepResult},
   params_from_iter,
 };
@@ -78,11 +78,11 @@ impl From<RusqliteDbConfig> for rusqlite::config::DbConfig {
 }
 
 #[napi(custom_finalize)]
-pub struct RusqliteConnection {
+pub struct Connection {
   pub(crate) connection: rusqlite::Connection,
 }
 
-impl Deref for RusqliteConnection {
+impl Deref for Connection {
   type Target = rusqlite::Connection;
 
   fn deref(&self) -> &Self::Target {
@@ -121,15 +121,6 @@ impl RusqliteInterruptHandle {
 }
 
 #[napi]
-pub fn execute_batch(external: &External<RusqliteConnection>, sql: String) -> napi::Result<()> {
-  external
-    .connection
-    .execute_batch(&sql)
-    .map_err(NodeRusqliteError::from)?;
-  Ok(())
-}
-
-#[napi]
 impl ScopedConnection<'_> {
   #[napi]
   pub fn backup(
@@ -138,7 +129,8 @@ impl ScopedConnection<'_> {
     dst_path: String,
     callback: ThreadsafeFunction<Progress>,
   ) -> napi::Result<()> {
-    let mut new_connection = Connection::open(dst_path).map_err(NodeRusqliteError::from)?;
+    let mut new_connection =
+      rusqlite::Connection::open(dst_path).map_err(NodeRusqliteError::from)?;
 
     let backup = Backup::new_with_names(
       self.connection,
@@ -180,7 +172,8 @@ impl ScopedConnection<'_> {
     src_path: String,
     callback: ThreadsafeFunction<Progress>,
   ) -> napi::Result<()> {
-    let mut new_connection = Connection::open(src_path).map_err(NodeRusqliteError::from)?;
+    let mut new_connection =
+      rusqlite::Connection::open(src_path).map_err(NodeRusqliteError::from)?;
 
     let backup = Backup::new_with_names(
       self.connection,
@@ -431,7 +424,7 @@ impl ScopedConnection<'_> {
     Ok(value.into())
   }
 
-  #[napi]
+  #[napi(ts_args_type = "callback: (transaction: ScopedConnection) => void")]
   pub fn unchecked_transaction(
     &mut self,
     callback: Function<ScopedConnection>,
@@ -535,7 +528,7 @@ impl ScopedConnection<'_> {
     Ok(row.into())
   }
 
-  #[napi]
+  #[napi(ts_args_type = "sql:string, callback: (statement: ScopedStatement) => void")]
   pub fn prepare(&self, sql: String, callback: Function<ScopedStatement>) -> napi::Result<()> {
     let statement = self
       .connection
@@ -549,7 +542,9 @@ impl ScopedConnection<'_> {
     Ok(())
   }
 
-  #[napi]
+  #[napi(
+    ts_args_type = "sql:string, flags: RusqlitePrepFlags, callback: (statement: ScopedStatement) => void"
+  )]
   pub fn prepare_with_flags(
     &self,
     sql: String,
@@ -630,20 +625,18 @@ impl ScopedConnection<'_> {
 }
 
 #[napi]
-impl RusqliteConnection {
+impl Connection {
   #[napi]
   pub fn open(
     path: String,
     options: Option<RusqliteConnectionOptions>,
-  ) -> napi::Result<RusqliteConnection> {
+  ) -> napi::Result<Connection> {
     let connection = rusqlite::Connection::open(&path).map_err(NodeRusqliteError::from)?;
     Ok(Self { connection })
   }
 
   #[napi]
-  pub fn open_in_memory(
-    options: Option<RusqliteConnectionOptions>,
-  ) -> napi::Result<RusqliteConnection> {
+  pub fn open_in_memory(options: Option<RusqliteConnectionOptions>) -> napi::Result<Connection> {
     let connection = rusqlite::Connection::open_in_memory().map_err(NodeRusqliteError::from)?;
     Ok(Self { connection })
   }
@@ -655,7 +648,8 @@ impl RusqliteConnection {
     dst_path: String,
     callback: ThreadsafeFunction<Progress>,
   ) -> napi::Result<()> {
-    let mut new_connection = Connection::open(dst_path).map_err(NodeRusqliteError::from)?;
+    let mut new_connection =
+      rusqlite::Connection::open(dst_path).map_err(NodeRusqliteError::from)?;
 
     let backup = Backup::new_with_names(
       &self.connection,
@@ -697,7 +691,8 @@ impl RusqliteConnection {
     src_path: String,
     callback: ThreadsafeFunction<Progress>,
   ) -> napi::Result<()> {
-    let mut new_connection = Connection::open(src_path).map_err(NodeRusqliteError::from)?;
+    let mut new_connection =
+      rusqlite::Connection::open(src_path).map_err(NodeRusqliteError::from)?;
 
     let backup = Backup::new_with_names(
       &self.connection,
@@ -948,7 +943,7 @@ impl RusqliteConnection {
     Ok(value.into())
   }
 
-  #[napi(ts_args_type = "callback: (transaction: ScopedTransaction) => void")]
+  #[napi(ts_args_type = "callback: (connection: ScopedConnection) => void")]
   pub fn transaction(&mut self, callback: Function<ScopedConnection>) -> napi::Result<()> {
     let transaction = self
       .connection
@@ -970,7 +965,7 @@ impl RusqliteConnection {
   }
 
   #[napi(
-    ts_args_type = "behavior: TransactionBehavior, callback: (transaction: ScopedTransaction) => void"
+    ts_args_type = "behavior: TransactionBehavior, callback: (connection: ScopedConnection) => void"
   )]
   pub fn transaction_with_behavior(
     &mut self,
@@ -996,11 +991,11 @@ impl RusqliteConnection {
     Ok(())
   }
 
-  #[napi(ts_args_type = "callback: (transaction: ScopedTransaction) => void")]
+  #[napi(ts_args_type = "callback: (connection: ScopedConnection) => void")]
   pub fn unchecked_transaction(
     &mut self,
     env: Env,
-    reference: Reference<RusqliteConnection>,
+    reference: Reference<Connection>,
     callback: Function<ScopedConnection>,
   ) -> napi::Result<()> {
     let transaction = self
@@ -1022,7 +1017,7 @@ impl RusqliteConnection {
     Ok(())
   }
 
-  #[napi]
+  #[napi(ts_args_type = "callback: (transaction: ScopedConnection) => void")]
   pub fn savepoint(&mut self, callback: Function<ScopedConnection>) -> napi::Result<()> {
     let mut savepoint = self
       .connection
@@ -1043,7 +1038,7 @@ impl RusqliteConnection {
     Ok(())
   }
 
-  #[napi]
+  #[napi(ts_args_type = "name: String, callback: (transaction: ScopedConnection) => void")]
   pub fn savepoint_with_name(
     &mut self,
     name: String,
@@ -1154,14 +1149,18 @@ impl RusqliteConnection {
     Ok(row.into())
   }
 
-  #[napi]
-  pub fn prepare(&self, sql: String) -> napi::Result<ScopedStatement<'_>> {
-    Ok(ScopedStatement {
-      statement: self
-        .connection
-        .prepare(&sql)
-        .map_err(NodeRusqliteError::from)?,
-    })
+  #[napi(ts_args_type = "sql: String, callback: (statement: ScopedStatement) => void")]
+  pub fn prepare(&self, sql: String, callback: Function<ScopedStatement>) -> napi::Result<()> {
+    let statement = self
+      .connection
+      .prepare(&sql)
+      .map_err(NodeRusqliteError::from)?;
+
+    let scoped = ScopedStatement { statement };
+
+    callback.call(scoped)?;
+
+    Ok(())
   }
 
   #[napi]
@@ -1169,13 +1168,18 @@ impl RusqliteConnection {
     &self,
     sql: String,
     flags: RusqlitePrepFlags,
-  ) -> napi::Result<ScopedStatement<'_>> {
-    Ok(ScopedStatement {
-      statement: self
-        .connection
-        .prepare_with_flags(&sql, PrepFlags::from_bits(flags as u32).unwrap())
-        .map_err(NodeRusqliteError::from)?,
-    })
+    callback: Function<ScopedStatement>,
+  ) -> napi::Result<()> {
+    let statement = self
+      .connection
+      .prepare_with_flags(&sql, PrepFlags::from_bits(flags as u32).unwrap())
+      .map_err(NodeRusqliteError::from)?;
+
+    let scoped = ScopedStatement { statement };
+
+    callback.call(scoped)?;
+
+    Ok(())
   }
 
   #[napi]
@@ -1240,7 +1244,7 @@ impl RusqliteConnection {
 }
 
 #[napi]
-impl ObjectFinalize for RusqliteConnection {
+impl ObjectFinalize for Connection {
   fn finalize(self, _env: Env) -> napi::Result<()> {
     self
       .connection

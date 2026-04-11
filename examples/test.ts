@@ -1,7 +1,9 @@
-import { executeBatch, RusqliteConnection } from "../bindings/index";
+import { Connection } from "../bindings/binding.js";
 
-let conn = RusqliteConnection.openInMemory();
+let conn = Connection.openInMemory();
 
-executeBatch(conn,'select sqlite_version()');
-
-console.log('freed')
+conn.prepare("select ? as name",(statement) => {
+  const result = statement.query(["john doe"])
+  console.log(Array.from(result))
+  console.log(result.toJSON())
+})

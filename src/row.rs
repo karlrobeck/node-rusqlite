@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use napi::{Unknown, iterator::ScopedGenerator};
+use napi::{Env, Unknown, iterator::ScopedGenerator};
 use napi_derive::napi;
 use serde::Serialize;
 
@@ -31,9 +31,31 @@ pub struct Rows<'a> {
 }
 
 #[napi]
-impl<'a> Rows<'a> {
+impl<'a> ScopedGenerator<'a> for Rows<'a> {
+  type Next = ();
+  type Return = ();
+  type Yield = Unknown<'a>;
+
+  fn next(&mut self, env: &'a napi::Env, _value: Option<Self::Next>) -> Option<Self::Yield> {
+    let next_row = self.rows.next().ok().unwrap_or_default()?;
+
+    let mut value_map = HashMap::new();
+
+    let columns = next_row.as_ref().columns();
+
+    for column in &columns {
+      let raw_value = next_row.get_ref(column.name()).ok()?;
+      value_map.insert(column.name(), ValueRef(raw_value));
+    }
+
+    env.to_js_value(&value_map).ok()
+  }
+}
+
+#[napi]
+impl Rows<'_> {
   #[napi(js_name = "toJSON")]
-  pub fn to_json(&mut self) -> napi::Result<String> {
+  pub fn to_json(&mut self, env: Env) -> napi::Result<Unknown<'_>> {
     let mut rows = vec![];
 
     while let Some(row) = self.rows.next().map_err(NodeRusqliteError::from)? {
@@ -54,28 +76,6 @@ impl<'a> Rows<'a> {
       rows.push(value_map);
     }
 
-    serde_json::to_string(&rows).map_err(|err| napi::Error::from_reason(err.to_string()))
-  }
-}
-
-#[napi]
-impl<'a> ScopedGenerator<'a> for Rows<'a> {
-  type Next = ();
-  type Return = ();
-  type Yield = Unknown<'a>;
-
-  fn next(&mut self, env: &'a napi::Env, _value: Option<Self::Next>) -> Option<Self::Yield> {
-    let next_row = self.rows.next().ok().unwrap_or_default()?;
-
-    let mut value_map = HashMap::new();
-
-    let columns = next_row.as_ref().columns();
-
-    for column in &columns {
-      let raw_value = next_row.get_ref(column.name()).ok()?;
-      value_map.insert(column.name(), ValueRef(raw_value));
-    }
-
-    env.to_js_value(&value_map).ok()
+    env.to_js_value(&rows)
   }
 }
