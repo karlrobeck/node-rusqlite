@@ -1,8 +1,8 @@
 use std::{ops::Deref, sync::Arc, thread, time::Duration};
 
 use napi::{
-  Either, Env,
-  bindgen_prelude::{Buffer, External, ObjectFinalize, Reference, SharedReference},
+  Env,
+  bindgen_prelude::{Buffer, External, ObjectFinalize, Reference},
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
 };
 use napi_derive::napi;
@@ -13,8 +13,8 @@ use rusqlite::{
 };
 
 use crate::{
-  column::RusqliteConnectionColumnMetadata,
-  errors::RusqliteError,
+  column::ConnectionColumnMetadata,
+  errors::NodeRusqliteError,
   statement::{RusqlitePrepFlags, ScopedStatement},
   transaction::{
     RusqliteSavepoint, RusqliteTransaction, RusqliteTransactionBehavior, RusqliteTransactionState,
@@ -127,7 +127,7 @@ pub fn execute_batch(external: &External<RusqliteConnection>, sql: String) -> na
   external
     .connection
     .execute_batch(&sql)
-    .map_err(RusqliteError::from)?;
+    .map_err(NodeRusqliteError::from)?;
   Ok(())
 }
 
@@ -140,7 +140,7 @@ impl RusqliteSharedConnection<'_> {
     dst_path: String,
     callback: ThreadsafeFunction<Progress>,
   ) -> napi::Result<()> {
-    let mut new_connection = Connection::open(dst_path).map_err(RusqliteError::from)?;
+    let mut new_connection = Connection::open(dst_path).map_err(NodeRusqliteError::from)?;
 
     let backup = Backup::new_with_names(
       self.connection,
@@ -148,7 +148,7 @@ impl RusqliteSharedConnection<'_> {
       &mut new_connection,
       &*name,
     )
-    .map_err(RusqliteError::from)?;
+    .map_err(NodeRusqliteError::from)?;
 
     let callback = Arc::new(callback);
 
@@ -163,7 +163,7 @@ impl RusqliteSharedConnection<'_> {
 
       callback.call(Ok(progress), ThreadsafeFunctionCallMode::NonBlocking);
 
-      match backup.step(2).map_err(RusqliteError::from)? {
+      match backup.step(2).map_err(NodeRusqliteError::from)? {
         StepResult::Busy | StepResult::More | StepResult::Locked => {
           thread::sleep(Duration::from_millis(100))
         }
@@ -182,7 +182,7 @@ impl RusqliteSharedConnection<'_> {
     src_path: String,
     callback: ThreadsafeFunction<Progress>,
   ) -> napi::Result<()> {
-    let mut new_connection = Connection::open(src_path).map_err(RusqliteError::from)?;
+    let mut new_connection = Connection::open(src_path).map_err(NodeRusqliteError::from)?;
 
     let backup = Backup::new_with_names(
       self.connection,
@@ -190,7 +190,7 @@ impl RusqliteSharedConnection<'_> {
       &mut new_connection,
       &*name,
     )
-    .map_err(RusqliteError::from)?;
+    .map_err(NodeRusqliteError::from)?;
 
     let callback = Arc::new(callback);
 
@@ -205,7 +205,7 @@ impl RusqliteSharedConnection<'_> {
 
       callback.call(Ok(progress), ThreadsafeFunctionCallMode::NonBlocking);
 
-      match backup.step(2).map_err(RusqliteError::from)? {
+      match backup.step(2).map_err(NodeRusqliteError::from)? {
         StepResult::Busy | StepResult::More | StepResult::Locked => {
           thread::sleep(Duration::from_millis(100))
         }
@@ -233,7 +233,7 @@ impl RusqliteSharedConnection<'_> {
         .column_exists(None, &*table_name, &*column_name),
     };
 
-    Ok(exists.map_err(RusqliteError::from)?)
+    Ok(exists.map_err(NodeRusqliteError::from)?)
   }
 
   #[napi]
@@ -243,7 +243,7 @@ impl RusqliteSharedConnection<'_> {
       None => self.connection.table_exists(None, &*table_name),
     };
 
-    Ok(exists.map_err(RusqliteError::from)?)
+    Ok(exists.map_err(NodeRusqliteError::from)?)
   }
 
   #[napi]
@@ -252,7 +252,7 @@ impl RusqliteSharedConnection<'_> {
     db_name: Option<String>,
     table_name: String,
     column_name: String,
-  ) -> napi::Result<RusqliteConnectionColumnMetadata> {
+  ) -> napi::Result<ConnectionColumnMetadata> {
     let metadata = match db_name {
       Some(db_name) => self
         .connection
@@ -262,9 +262,9 @@ impl RusqliteSharedConnection<'_> {
         .column_metadata(None, &*table_name, &*column_name),
     };
 
-    let metadata = metadata.map_err(RusqliteError::from)?;
+    let metadata = metadata.map_err(NodeRusqliteError::from)?;
 
-    Ok(RusqliteConnectionColumnMetadata {
+    Ok(ConnectionColumnMetadata {
       r#type: metadata.0.map(|val| val.to_str().unwrap().to_string()),
       collation_sequence: metadata.1.map(|val| val.to_str().unwrap().to_string()),
       not_null: metadata.2,
@@ -278,7 +278,7 @@ impl RusqliteSharedConnection<'_> {
     self
       .connection
       .db_config(config.into())
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
     Ok(())
   }
 
@@ -287,7 +287,7 @@ impl RusqliteSharedConnection<'_> {
     self
       .connection
       .set_db_config(config.into(), on)
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
     Ok(())
   }
 
@@ -307,7 +307,7 @@ impl RusqliteSharedConnection<'_> {
         .connection
         .pragma_query_value(None, &pragma_name, row_to_buffer),
     }
-    .map_err(RusqliteError::from)?;
+    .map_err(NodeRusqliteError::from)?;
 
     Ok(value.into())
   }
@@ -332,7 +332,7 @@ impl RusqliteSharedConnection<'_> {
         Ok(())
       }),
     }
-    .map_err(RusqliteError::from)?;
+    .map_err(NodeRusqliteError::from)?;
 
     Ok(buffer.into())
   }
@@ -346,7 +346,7 @@ impl RusqliteSharedConnection<'_> {
     callback: ThreadsafeFunction<Buffer>,
   ) -> napi::Result<()> {
     let sql_value =
-      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(RusqliteError::from)?;
+      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(NodeRusqliteError::from)?;
 
     match schema_name {
       Some(schema_name) => {
@@ -375,7 +375,7 @@ impl RusqliteSharedConnection<'_> {
           Ok(())
         }),
     }
-    .map_err(RusqliteError::from)?;
+    .map_err(NodeRusqliteError::from)?;
 
     Ok(())
   }
@@ -388,7 +388,7 @@ impl RusqliteSharedConnection<'_> {
     pragma_value: &[u8],
   ) -> napi::Result<()> {
     let sql_value =
-      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(RusqliteError::from)?;
+      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(NodeRusqliteError::from)?;
 
     match schema_name {
       Some(schema_name) => {
@@ -400,7 +400,7 @@ impl RusqliteSharedConnection<'_> {
         .connection
         .pragma_update(None, &pragma_name, &sql_value),
     }
-    .map_err(RusqliteError::from)?;
+    .map_err(NodeRusqliteError::from)?;
 
     Ok(())
   }
@@ -413,7 +413,7 @@ impl RusqliteSharedConnection<'_> {
     pragma_value: &[u8],
   ) -> napi::Result<Buffer> {
     let sql_value =
-      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(RusqliteError::from)?;
+      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(NodeRusqliteError::from)?;
 
     let value = match schema_name {
       Some(schema_name) => self.connection.pragma_update_and_check(
@@ -428,7 +428,7 @@ impl RusqliteSharedConnection<'_> {
           .pragma_update_and_check(None, &pragma_name, &sql_value, row_to_buffer)
       }
     }
-    .map_err(RusqliteError::from)?;
+    .map_err(NodeRusqliteError::from)?;
 
     Ok(value.into())
   }
@@ -445,7 +445,7 @@ impl RusqliteSharedConnection<'_> {
           conn
             .connection
             .unchecked_transaction()
-            .map_err(RusqliteError::from)?,
+            .map_err(NodeRusqliteError::from)?,
         )
       })?,
     })
@@ -459,7 +459,7 @@ impl RusqliteSharedConnection<'_> {
     let state = self
       .connection
       .transaction_state(db_name.as_deref())
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
 
     Ok(state.into())
   }
@@ -469,20 +469,20 @@ impl RusqliteSharedConnection<'_> {
     self
       .connection
       .execute_batch(&sql)
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
     Ok(())
   }
 
   #[napi]
   pub fn execute(&self, sql: String, sql_params: &[u8]) -> napi::Result<i64> {
     let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(sql_params)
-      .map_err(RusqliteError::from)
+      .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
     let result = self
       .connection
       .execute(&sql, params_from_iter(sql_params.iter()))
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
 
     Ok(result as i64)
   }
@@ -497,7 +497,7 @@ impl RusqliteSharedConnection<'_> {
     self
       .connection
       .release_memory()
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
     Ok(())
   }
 
@@ -509,13 +509,13 @@ impl RusqliteSharedConnection<'_> {
   #[napi]
   pub fn query_row(&self, sql: String, sql_params: &[u8]) -> napi::Result<Buffer> {
     let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(sql_params)
-      .map_err(RusqliteError::from)
+      .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
     let row = self
       .connection
       .query_row(&sql, params_from_iter(sql_params.iter()), row_to_buffer)
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
 
     Ok(row.into())
   }
@@ -523,13 +523,13 @@ impl RusqliteSharedConnection<'_> {
   #[napi]
   pub fn query_one(&self, sql: String, sql_params: &[u8]) -> napi::Result<Buffer> {
     let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(sql_params)
-      .map_err(RusqliteError::from)
+      .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
     let row = self
       .connection
       .query_one(&sql, params_from_iter(sql_params.iter()), row_to_buffer)
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
 
     Ok(row.into())
   }
@@ -537,7 +537,10 @@ impl RusqliteSharedConnection<'_> {
   #[napi]
   pub fn prepare(&self, sql: String) -> napi::Result<ScopedStatement<'_>> {
     Ok(ScopedStatement {
-      statement: self.connection.prepare(&sql).map_err(RusqliteError::from)?,
+      statement: self
+        .connection
+        .prepare(&sql)
+        .map_err(NodeRusqliteError::from)?,
     })
   }
 
@@ -551,7 +554,7 @@ impl RusqliteSharedConnection<'_> {
       statement: self
         .connection
         .prepare_with_flags(&sql, PrepFlags::from_bits(flags as u32).unwrap())
-        .map_err(RusqliteError::from)?,
+        .map_err(NodeRusqliteError::from)?,
     })
   }
 
@@ -583,7 +586,10 @@ impl RusqliteSharedConnection<'_> {
 
   #[napi]
   pub fn cache_flush(&self) -> napi::Result<()> {
-    self.connection.cache_flush().map_err(RusqliteError::from)?;
+    self
+      .connection
+      .cache_flush()
+      .map_err(NodeRusqliteError::from)?;
     Ok(())
   }
 
@@ -593,7 +599,7 @@ impl RusqliteSharedConnection<'_> {
       self
         .connection
         .is_readonly(&*db_name)
-        .map_err(RusqliteError::from)?,
+        .map_err(NodeRusqliteError::from)?,
     )
   }
 
@@ -603,7 +609,7 @@ impl RusqliteSharedConnection<'_> {
       self
         .connection
         .db_name(index as usize)
-        .map_err(RusqliteError::from)?,
+        .map_err(NodeRusqliteError::from)?,
     )
   }
 
@@ -620,14 +626,14 @@ impl RusqliteConnection {
     path: String,
     options: Option<RusqliteConnectionOptions>,
   ) -> napi::Result<RusqliteConnection> {
-    let connection = rusqlite::Connection::open(&path).map_err(RusqliteError::from)?;
+    let connection = rusqlite::Connection::open(&path).map_err(NodeRusqliteError::from)?;
     Ok(Self { connection })
   }
   #[napi]
   pub fn open_in_memory(
     options: Option<RusqliteConnectionOptions>,
   ) -> napi::Result<RusqliteConnection> {
-    let connection = rusqlite::Connection::open_in_memory().map_err(RusqliteError::from)?;
+    let connection = rusqlite::Connection::open_in_memory().map_err(NodeRusqliteError::from)?;
     Ok(Self { connection })
   }
 
@@ -638,7 +644,7 @@ impl RusqliteConnection {
     dst_path: String,
     callback: ThreadsafeFunction<Progress>,
   ) -> napi::Result<()> {
-    let mut new_connection = Connection::open(dst_path).map_err(RusqliteError::from)?;
+    let mut new_connection = Connection::open(dst_path).map_err(NodeRusqliteError::from)?;
 
     let backup = Backup::new_with_names(
       &self.connection,
@@ -646,7 +652,7 @@ impl RusqliteConnection {
       &mut new_connection,
       &*name,
     )
-    .map_err(RusqliteError::from)?;
+    .map_err(NodeRusqliteError::from)?;
 
     let callback = Arc::new(callback);
 
@@ -661,7 +667,7 @@ impl RusqliteConnection {
 
       callback.call(Ok(progress), ThreadsafeFunctionCallMode::NonBlocking);
 
-      match backup.step(2).map_err(RusqliteError::from)? {
+      match backup.step(2).map_err(NodeRusqliteError::from)? {
         StepResult::Busy | StepResult::More | StepResult::Locked => {
           thread::sleep(Duration::from_millis(100))
         }
@@ -680,7 +686,7 @@ impl RusqliteConnection {
     src_path: String,
     callback: ThreadsafeFunction<Progress>,
   ) -> napi::Result<()> {
-    let mut new_connection = Connection::open(src_path).map_err(RusqliteError::from)?;
+    let mut new_connection = Connection::open(src_path).map_err(NodeRusqliteError::from)?;
 
     let backup = Backup::new_with_names(
       &self.connection,
@@ -688,7 +694,7 @@ impl RusqliteConnection {
       &mut new_connection,
       &*name,
     )
-    .map_err(RusqliteError::from)?;
+    .map_err(NodeRusqliteError::from)?;
 
     let callback = Arc::new(callback);
 
@@ -703,7 +709,7 @@ impl RusqliteConnection {
 
       callback.call(Ok(progress), ThreadsafeFunctionCallMode::NonBlocking);
 
-      match backup.step(2).map_err(RusqliteError::from)? {
+      match backup.step(2).map_err(NodeRusqliteError::from)? {
         StepResult::Busy | StepResult::More | StepResult::Locked => {
           thread::sleep(Duration::from_millis(100))
         }
@@ -731,7 +737,7 @@ impl RusqliteConnection {
         .column_exists(None, &*table_name, &*column_name),
     };
 
-    Ok(exists.map_err(RusqliteError::from)?)
+    Ok(exists.map_err(NodeRusqliteError::from)?)
   }
 
   #[napi]
@@ -741,7 +747,7 @@ impl RusqliteConnection {
       None => self.connection.table_exists(None, &*table_name),
     };
 
-    Ok(exists.map_err(RusqliteError::from)?)
+    Ok(exists.map_err(NodeRusqliteError::from)?)
   }
 
   #[napi]
@@ -750,7 +756,7 @@ impl RusqliteConnection {
     db_name: Option<String>,
     table_name: String,
     column_name: String,
-  ) -> napi::Result<RusqliteConnectionColumnMetadata> {
+  ) -> napi::Result<ConnectionColumnMetadata> {
     let metadata = match db_name {
       Some(db_name) => self
         .connection
@@ -760,9 +766,9 @@ impl RusqliteConnection {
         .column_metadata(None, &*table_name, &*column_name),
     };
 
-    let metadata = metadata.map_err(RusqliteError::from)?;
+    let metadata = metadata.map_err(NodeRusqliteError::from)?;
 
-    Ok(RusqliteConnectionColumnMetadata {
+    Ok(ConnectionColumnMetadata {
       r#type: metadata.0.map(|val| val.to_str().unwrap().to_string()),
       collation_sequence: metadata.1.map(|val| val.to_str().unwrap().to_string()),
       not_null: metadata.2,
@@ -776,7 +782,7 @@ impl RusqliteConnection {
     self
       .connection
       .db_config(config.into())
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
     Ok(())
   }
 
@@ -785,7 +791,7 @@ impl RusqliteConnection {
     self
       .connection
       .set_db_config(config.into(), on)
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
     Ok(())
   }
 
@@ -805,7 +811,7 @@ impl RusqliteConnection {
         .connection
         .pragma_query_value(None, &pragma_name, row_to_buffer),
     }
-    .map_err(RusqliteError::from)?;
+    .map_err(NodeRusqliteError::from)?;
 
     Ok(value.into())
   }
@@ -830,7 +836,7 @@ impl RusqliteConnection {
         Ok(())
       }),
     }
-    .map_err(RusqliteError::from)?;
+    .map_err(NodeRusqliteError::from)?;
 
     Ok(buffer.into())
   }
@@ -844,7 +850,7 @@ impl RusqliteConnection {
     callback: ThreadsafeFunction<Buffer>,
   ) -> napi::Result<()> {
     let sql_value =
-      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(RusqliteError::from)?;
+      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(NodeRusqliteError::from)?;
 
     match schema_name {
       Some(schema_name) => {
@@ -873,7 +879,7 @@ impl RusqliteConnection {
           Ok(())
         }),
     }
-    .map_err(RusqliteError::from)?;
+    .map_err(NodeRusqliteError::from)?;
 
     Ok(())
   }
@@ -886,7 +892,7 @@ impl RusqliteConnection {
     pragma_value: &[u8],
   ) -> napi::Result<()> {
     let sql_value =
-      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(RusqliteError::from)?;
+      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(NodeRusqliteError::from)?;
 
     match schema_name {
       Some(schema_name) => {
@@ -898,7 +904,7 @@ impl RusqliteConnection {
         .connection
         .pragma_update(None, &pragma_name, &sql_value),
     }
-    .map_err(RusqliteError::from)?;
+    .map_err(NodeRusqliteError::from)?;
 
     Ok(())
   }
@@ -911,7 +917,7 @@ impl RusqliteConnection {
     pragma_value: &[u8],
   ) -> napi::Result<Buffer> {
     let sql_value =
-      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(RusqliteError::from)?;
+      serde_json::from_slice::<RusqliteValue>(pragma_value).map_err(NodeRusqliteError::from)?;
 
     let value = match schema_name {
       Some(schema_name) => self.connection.pragma_update_and_check(
@@ -926,7 +932,7 @@ impl RusqliteConnection {
           .pragma_update_and_check(None, &pragma_name, &sql_value, row_to_buffer)
       }
     }
-    .map_err(RusqliteError::from)?;
+    .map_err(NodeRusqliteError::from)?;
 
     Ok(value.into())
   }
@@ -939,7 +945,12 @@ impl RusqliteConnection {
   ) -> napi::Result<RusqliteTransaction> {
     Ok(RusqliteTransaction {
       transaction: reference.share_with(env, |conn| {
-        Ok(conn.connection.transaction().map_err(RusqliteError::from)?)
+        Ok(
+          conn
+            .connection
+            .transaction()
+            .map_err(NodeRusqliteError::from)?,
+        )
       })?,
     })
   }
@@ -957,7 +968,7 @@ impl RusqliteConnection {
           conn
             .connection
             .transaction_with_behavior(behavior.into())
-            .map_err(RusqliteError::from)?,
+            .map_err(NodeRusqliteError::from)?,
         )
       })?,
     })
@@ -975,7 +986,7 @@ impl RusqliteConnection {
           conn
             .connection
             .unchecked_transaction()
-            .map_err(RusqliteError::from)?,
+            .map_err(NodeRusqliteError::from)?,
         )
       })?,
     })
@@ -989,7 +1000,12 @@ impl RusqliteConnection {
   ) -> napi::Result<RusqliteSavepoint> {
     Ok(RusqliteSavepoint {
       savepoint: reference.share_with(env, |conn| {
-        Ok(conn.connection.savepoint().map_err(RusqliteError::from)?)
+        Ok(
+          conn
+            .connection
+            .savepoint()
+            .map_err(NodeRusqliteError::from)?,
+        )
       })?,
       name: None,
       commited: false,
@@ -1009,7 +1025,7 @@ impl RusqliteConnection {
           conn
             .connection
             .savepoint_with_name(name.clone())
-            .map_err(RusqliteError::from)?,
+            .map_err(NodeRusqliteError::from)?,
         )
       })?,
       name: Some(name),
@@ -1025,7 +1041,7 @@ impl RusqliteConnection {
     let state = self
       .connection
       .transaction_state(db_name.as_deref())
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
 
     Ok(state.into())
   }
@@ -1044,20 +1060,20 @@ impl RusqliteConnection {
     self
       .connection
       .execute_batch(&sql)
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
     Ok(())
   }
 
   #[napi]
   pub fn execute(&self, sql: String, sql_params: &[u8]) -> napi::Result<i64> {
     let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(sql_params)
-      .map_err(RusqliteError::from)
+      .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
     let result = self
       .connection
       .execute(&sql, params_from_iter(sql_params.iter()))
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
 
     Ok(result as i64)
   }
@@ -1072,7 +1088,7 @@ impl RusqliteConnection {
     self
       .connection
       .release_memory()
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
     Ok(())
   }
 
@@ -1084,13 +1100,13 @@ impl RusqliteConnection {
   #[napi]
   pub fn query_row(&self, sql: String, sql_params: &[u8]) -> napi::Result<Buffer> {
     let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(sql_params)
-      .map_err(RusqliteError::from)
+      .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
     let row = self
       .connection
       .query_row(&sql, params_from_iter(sql_params.iter()), row_to_buffer)
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
 
     Ok(row.into())
   }
@@ -1098,21 +1114,24 @@ impl RusqliteConnection {
   #[napi]
   pub fn query_one(&self, sql: String, sql_params: &[u8]) -> napi::Result<Buffer> {
     let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(sql_params)
-      .map_err(RusqliteError::from)
+      .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
     let row = self
       .connection
       .query_one(&sql, params_from_iter(sql_params.iter()), row_to_buffer)
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
 
     Ok(row.into())
   }
 
   #[napi]
-  pub fn prepare(&self, env: Env, sql: String) -> napi::Result<ScopedStatement<'_>> {
+  pub fn prepare(&self, sql: String) -> napi::Result<ScopedStatement<'_>> {
     Ok(ScopedStatement {
-      statement: self.connection.prepare(&sql).map_err(RusqliteError::from)?,
+      statement: self
+        .connection
+        .prepare(&sql)
+        .map_err(NodeRusqliteError::from)?,
     })
   }
 
@@ -1126,7 +1145,7 @@ impl RusqliteConnection {
       statement: self
         .connection
         .prepare_with_flags(&sql, PrepFlags::from_bits(flags as u32).unwrap())
-        .map_err(RusqliteError::from)?,
+        .map_err(NodeRusqliteError::from)?,
     })
   }
 
@@ -1158,7 +1177,10 @@ impl RusqliteConnection {
 
   #[napi]
   pub fn cache_flush(&self) -> napi::Result<()> {
-    self.connection.cache_flush().map_err(RusqliteError::from)?;
+    self
+      .connection
+      .cache_flush()
+      .map_err(NodeRusqliteError::from)?;
     Ok(())
   }
 
@@ -1168,7 +1190,7 @@ impl RusqliteConnection {
       self
         .connection
         .is_readonly(&*db_name)
-        .map_err(RusqliteError::from)?,
+        .map_err(NodeRusqliteError::from)?,
     )
   }
 
@@ -1178,7 +1200,7 @@ impl RusqliteConnection {
       self
         .connection
         .db_name(index as usize)
-        .map_err(RusqliteError::from)?,
+        .map_err(NodeRusqliteError::from)?,
     )
   }
 
@@ -1194,7 +1216,7 @@ impl ObjectFinalize for RusqliteConnection {
     self
       .connection
       .close()
-      .map_err(|(_, err)| RusqliteError::from(err))?;
+      .map_err(|(_, err)| NodeRusqliteError::from(err))?;
     Ok(())
   }
 }

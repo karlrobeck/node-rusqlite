@@ -5,8 +5,8 @@ use napi_derive::napi;
 use rusqlite::{StatementStatus, params_from_iter};
 
 use crate::{
-  column::{RusqliteColumn, RusqliteColumnMetadata},
-  errors::RusqliteError,
+  column::{Column, ColumnMetadata},
+  errors::NodeRusqliteError,
   row::RusqliteRows,
   utils::RusqliteValue,
 };
@@ -93,7 +93,7 @@ impl ScopedStatement<'_> {
       self
         .statement
         .column_name(col as usize)
-        .map_err(RusqliteError::from)?
+        .map_err(NodeRusqliteError::from)?
         .to_string(),
     )
   }
@@ -104,30 +104,30 @@ impl ScopedStatement<'_> {
       self
         .statement
         .column_index(&name)
-        .map_err(RusqliteError::from)? as i64,
+        .map_err(NodeRusqliteError::from)? as i64,
     )
   }
 
   #[napi]
-  pub fn columns(&self) -> napi::Result<Vec<RusqliteColumn<'_>>> {
+  pub fn columns(&self) -> napi::Result<Vec<Column<'_>>> {
     Ok(
       self
         .statement
         .columns()
         .into_iter()
-        .map(|col| RusqliteColumn { column: col })
+        .map(|col| Column { column: col })
         .collect::<Vec<_>>(),
     )
   }
 
   #[napi]
-  pub fn columns_with_metadata(&self) -> napi::Result<Vec<RusqliteColumnMetadata<'_>>> {
+  pub fn columns_with_metadata(&self) -> napi::Result<Vec<ColumnMetadata<'_>>> {
     Ok(
       self
         .statement
         .columns_with_metadata()
         .into_iter()
-        .map(|metadata| RusqliteColumnMetadata { metadata })
+        .map(|metadata| ColumnMetadata { metadata })
         .collect::<Vec<_>>(),
     )
   }
@@ -137,19 +137,19 @@ impl ScopedStatement<'_> {
     let metadata = self
       .statement
       .column_metadata(col as usize)
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
 
     if let Some(metadata) = metadata {
       let metadata = RusqliteDetailedColumnMetadata {
         database_name: metadata
           .0
           .to_str()
-          .map_err(|err| RusqliteError(rusqlite::Error::Utf8Error(0, err)))?
+          .map_err(|err| NodeRusqliteError(rusqlite::Error::Utf8Error(0, err)))?
           .to_string(),
         table_name: metadata
           .1
           .to_str()
-          .map_err(|err| RusqliteError(rusqlite::Error::Utf8Error(0, err)))?
+          .map_err(|err| NodeRusqliteError(rusqlite::Error::Utf8Error(0, err)))?
           .to_string(),
         column_name: metadata.2.to_string_lossy().to_string(),
         collation_sequence: metadata.3.map(|v| v.to_string_lossy().to_string()),
@@ -168,13 +168,13 @@ impl ScopedStatement<'_> {
   #[napi]
   pub fn execute(&mut self, params: &[u8]) -> napi::Result<i64> {
     let params = serde_json::from_slice::<Vec<RusqliteValue>>(params)
-      .map_err(RusqliteError::from)
+      .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
     let result = self
       .statement
       .execute(params_from_iter(params.iter()))
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
 
     Ok(result as i64)
   }
@@ -182,13 +182,13 @@ impl ScopedStatement<'_> {
   #[napi]
   pub fn insert(&mut self, params: &[u8]) -> napi::Result<i64> {
     let params = serde_json::from_slice::<Vec<RusqliteValue>>(params)
-      .map_err(RusqliteError::from)
+      .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
     let result = self
       .statement
       .insert(params_from_iter(params.iter()))
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
 
     Ok(result)
   }
@@ -196,13 +196,13 @@ impl ScopedStatement<'_> {
   #[napi]
   pub fn query(&mut self, params: &[u8]) -> napi::Result<RusqliteRows<'_>> {
     let params = serde_json::from_slice::<Vec<RusqliteValue>>(params)
-      .map_err(RusqliteError::from)
+      .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
     let rows = self
       .statement
       .query(params_from_iter(params.iter()))
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
 
     Ok(RusqliteRows { rows })
   }
@@ -210,13 +210,13 @@ impl ScopedStatement<'_> {
   #[napi]
   pub fn exists(&mut self, params: &[u8]) -> napi::Result<bool> {
     let sql_params = serde_json::from_slice::<Vec<RusqliteValue>>(params)
-      .map_err(RusqliteError::from)
+      .map_err(NodeRusqliteError::from)
       .unwrap_or_default();
 
     let result = self
       .statement
       .exists(params_from_iter(sql_params.iter()))
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
 
     Ok(result)
   }
@@ -226,7 +226,7 @@ impl ScopedStatement<'_> {
     let index = self
       .statement
       .parameter_index(&name)
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
 
     Ok(index.map(|v| v as i64))
   }

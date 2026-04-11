@@ -1,12 +1,12 @@
 use napi_derive::napi;
 
 #[napi]
-pub struct RusqliteColumnMetadata<'a> {
+pub struct ColumnMetadata<'a> {
   pub(crate) metadata: rusqlite::ColumnMetadata<'a>,
 }
 
 #[napi]
-impl<'a> RusqliteColumnMetadata<'a> {
+impl<'a> ColumnMetadata<'a> {
   #[napi]
   pub fn name(&self) -> napi::Result<String> {
     Ok(self.metadata.name().to_string())
@@ -26,12 +26,12 @@ impl<'a> RusqliteColumnMetadata<'a> {
 }
 
 #[napi]
-pub struct RusqliteColumn<'a> {
+pub struct Column<'a> {
   pub(crate) column: rusqlite::Column<'a>,
 }
 
 #[napi]
-impl<'a> RusqliteColumn<'a> {
+impl<'a> Column<'a> {
   #[napi]
   pub fn name(&self) -> napi::Result<String> {
     Ok(self.column.name().to_string())
@@ -43,7 +43,7 @@ impl<'a> RusqliteColumn<'a> {
 }
 
 #[napi(object)]
-pub struct RusqliteConnectionColumnMetadata {
+pub struct ConnectionColumnMetadata {
   pub r#type: Option<String>,
   pub collation_sequence: Option<String>,
   pub not_null: bool,

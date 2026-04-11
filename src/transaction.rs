@@ -2,14 +2,14 @@ use std::ops::Deref;
 
 use napi::{
   Env,
-  bindgen_prelude::{ObjectFinalize, Reference, SharedReference},
+  bindgen_prelude::{Reference, SharedReference},
 };
 use napi_derive::napi;
 use rusqlite::{Connection, Transaction};
 
 use crate::{
   connection::{RusqliteConnection, RusqliteSharedConnection},
-  errors::RusqliteError,
+  errors::NodeRusqliteError,
 };
 
 #[napi]
@@ -82,7 +82,12 @@ impl RusqliteTransaction {
   ) -> napi::Result<RusqliteSavepoint> {
     Ok(RusqliteSavepoint {
       savepoint: reference.share_with(env, |conn| {
-        Ok(conn.connection.savepoint().map_err(RusqliteError::from)?)
+        Ok(
+          conn
+            .connection
+            .savepoint()
+            .map_err(NodeRusqliteError::from)?,
+        )
       })?,
       name: Some("_rusqlite_sp".to_string()),
       commited: false,
@@ -102,7 +107,7 @@ impl RusqliteTransaction {
           conn
             .connection
             .savepoint_with_name(name.clone())
-            .map_err(RusqliteError::from)?,
+            .map_err(NodeRusqliteError::from)?,
         )
       })?,
       name: Some(name),
@@ -134,7 +139,7 @@ impl RusqliteTransaction {
     self
       .transaction
       .execute_batch("COMMIT")
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
     Ok(())
   }
 
@@ -143,7 +148,7 @@ impl RusqliteTransaction {
     self
       .transaction
       .execute_batch("ROLLBACK")
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
     Ok(())
   }
 
@@ -194,7 +199,12 @@ impl RusqliteSavepoint {
   ) -> napi::Result<RusqliteSavepoint> {
     Ok(RusqliteSavepoint {
       savepoint: reference.share_with(env, |conn| {
-        Ok(conn.connection.savepoint().map_err(RusqliteError::from)?)
+        Ok(
+          conn
+            .connection
+            .savepoint()
+            .map_err(NodeRusqliteError::from)?,
+        )
       })?,
       name: Some("_rusqlite_sp".to_string()),
       commited: self.commited,
@@ -214,7 +224,7 @@ impl RusqliteSavepoint {
           conn
             .connection
             .savepoint_with_name(name.clone())
-            .map_err(RusqliteError::from)?,
+            .map_err(NodeRusqliteError::from)?,
         )
       })?,
       name: Some(name),
@@ -249,14 +259,14 @@ impl RusqliteSavepoint {
         "RELEASE {}",
         self.name.as_ref().map_or("_rusqlite_sp", |v| v)
       ))
-      .map_err(RusqliteError::from)?;
+      .map_err(NodeRusqliteError::from)?;
     self.commited = true;
     Ok(())
   }
 
   #[napi]
   pub fn rollback(&mut self) -> napi::Result<()> {
-    self.savepoint.rollback().map_err(RusqliteError::from)?;
+    self.savepoint.rollback().map_err(NodeRusqliteError::from)?;
     Ok(())
   }
 
