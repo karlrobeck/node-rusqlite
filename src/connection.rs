@@ -103,9 +103,35 @@ pub struct Progress {
 }
 
 #[napi(object)]
-pub struct RusqliteConnectionOptions {
-  pub flags: i64,
+pub struct ConnectionOptions {
+  pub flags: Option<OpenFlags>,
   pub vfs: Option<String>,
+}
+
+#[napi]
+pub enum OpenFlags {
+  SqliteOpenReadonly = 0x00000001,      /* Ok for sqlite3_open_v2() */
+  SqliteOpenReadwrite = 0x00000002,     /* Ok for sqlite3_open_v2() */
+  SqliteOpenCreate = 0x00000004,        /* Ok for sqlite3_open_v2() */
+  SqliteOpenDELETEONCLOSE = 0x00000008, /* VFS only */
+  SqliteOpenEXCLUSIVE = 0x00000010,     /* VFS only */
+  SqliteOpenAUTOPROXY = 0x00000020,     /* VFS only */
+  SqliteOpenURI = 0x00000040,           /* Ok for sqlite3_open_v2() */
+  SqliteOpenMEMORY = 0x00000080,        /* Ok for sqlite3_open_v2() */
+  SqliteOpenMainDb = 0x00000100,        /* VFS only */
+  SqliteOpenTempDb = 0x00000200,        /* VFS only */
+  SqliteOpenTransientDb = 0x00000400,   /* VFS only */
+  SqliteOpenMainJournal = 0x00000800,   /* VFS only */
+  SqliteOpenTempJournal = 0x00001000,   /* VFS only */
+  SqliteOpenSubjournal = 0x00002000,    /* VFS only */
+  SqliteOpenSuperJournal = 0x00004000,  /* VFS only */
+  SqliteOpenNomutex = 0x00008000,       /* Ok for sqlite3_open_v2() */
+  SqliteOpenFullmutex = 0x00010000,     /* Ok for sqlite3_open_v2() */
+  SqliteOpenSharedcache = 0x00020000,   /* Ok for sqlite3_open_v2() */
+  SqliteOpenPrivatecache = 0x00040000,  /* Ok for sqlite3_open_v2() */
+  SqliteOpenWal = 0x00080000,           /* VFS only */
+  SqliteOpenNofollow = 0x01000000,      /* Ok for sqlite3_open_v2() */
+  SqliteOpenExrescode = 0x02000000,     /* Extended result codes */
 }
 
 #[napi]
@@ -123,92 +149,6 @@ impl InterruptHandle {
 
 #[napi]
 impl ScopedConnection<'_> {
-  #[napi]
-  pub fn backup(
-    &self,
-    name: String,
-    dst_path: String,
-    callback: ThreadsafeFunction<Progress>,
-  ) -> napi::Result<()> {
-    let mut new_connection =
-      rusqlite::Connection::open(dst_path).map_err(NodeRusqliteError::from)?;
-
-    let backup = Backup::new_with_names(
-      self.connection,
-      self.connection.path().unwrap(),
-      &mut new_connection,
-      &*name,
-    )
-    .map_err(NodeRusqliteError::from)?;
-
-    let callback = Arc::new(callback);
-
-    loop {
-      let progress = {
-        let raw = backup.progress();
-        Progress {
-          page_count: raw.pagecount,
-          remaining: raw.remaining,
-        }
-      };
-
-      callback.call(Ok(progress), ThreadsafeFunctionCallMode::NonBlocking);
-
-      match backup.step(2).map_err(NodeRusqliteError::from)? {
-        StepResult::Busy | StepResult::More | StepResult::Locked => {
-          thread::sleep(Duration::from_millis(100))
-        }
-        StepResult::Done => break,
-        _ => panic!(""),
-      }
-    }
-
-    Ok(())
-  }
-
-  #[napi]
-  pub fn restore(
-    &self,
-    name: String,
-    src_path: String,
-    callback: ThreadsafeFunction<Progress>,
-  ) -> napi::Result<()> {
-    let mut new_connection =
-      rusqlite::Connection::open(src_path).map_err(NodeRusqliteError::from)?;
-
-    let backup = Backup::new_with_names(
-      self.connection,
-      self.connection.path().unwrap(),
-      &mut new_connection,
-      &*name,
-    )
-    .map_err(NodeRusqliteError::from)?;
-
-    let callback = Arc::new(callback);
-
-    loop {
-      let progress = {
-        let raw = backup.progress();
-        Progress {
-          page_count: raw.pagecount,
-          remaining: raw.remaining,
-        }
-      };
-
-      callback.call(Ok(progress), ThreadsafeFunctionCallMode::NonBlocking);
-
-      match backup.step(2).map_err(NodeRusqliteError::from)? {
-        StepResult::Busy | StepResult::More | StepResult::Locked => {
-          thread::sleep(Duration::from_millis(100))
-        }
-        StepResult::Done => break,
-        _ => panic!(""),
-      }
-    }
-
-    Ok(())
-  }
-
   #[napi]
   pub fn column_exists(
     &self,
@@ -674,104 +614,56 @@ impl ScopedConnection<'_> {
 #[napi]
 impl Connection {
   #[napi(factory)]
-  pub fn open(
-    path: String,
-    options: Option<RusqliteConnectionOptions>,
-  ) -> napi::Result<Connection> {
-    let connection = rusqlite::Connection::open(&path).map_err(NodeRusqliteError::from)?;
+  pub fn open(path: String, options: Option<ConnectionOptions>) -> napi::Result<Connection> {
+    let connection = match options {
+      Some(option) => match (option.flags, option.vfs) {
+        (Some(flags), Some(vfs)) => rusqlite::Connection::open_with_flags_and_vfs(
+          &path,
+          rusqlite::OpenFlags::from_bits(flags as i32).unwrap(),
+          &*vfs,
+        )
+        .map_err(NodeRusqliteError::from)?,
+        (Some(flags), None) => rusqlite::Connection::open_with_flags(
+          &path,
+          rusqlite::OpenFlags::from_bits(flags as i32).unwrap(),
+        )
+        .map_err(NodeRusqliteError::from)?,
+        (None, Some(vfs)) => {
+          rusqlite::Connection::open_with_flags_and_vfs(&path, rusqlite::OpenFlags::empty(), &*vfs)
+            .map_err(NodeRusqliteError::from)?
+        }
+        (None, None) => rusqlite::Connection::open(&path).map_err(NodeRusqliteError::from)?,
+      },
+      None => rusqlite::Connection::open(&path).map_err(NodeRusqliteError::from)?,
+    };
+
     Ok(Self { connection })
   }
 
   #[napi(factory)]
-  pub fn open_in_memory(options: Option<RusqliteConnectionOptions>) -> napi::Result<Connection> {
-    let connection = rusqlite::Connection::open_in_memory().map_err(NodeRusqliteError::from)?;
+  pub fn open_in_memory(options: Option<ConnectionOptions>) -> napi::Result<Connection> {
+    let connection = match options {
+      Some(option) => match (option.flags, option.vfs) {
+        (Some(flags), Some(vfs)) => rusqlite::Connection::open_in_memory_with_flags_and_vfs(
+          rusqlite::OpenFlags::from_bits(flags as i32).unwrap(),
+          &*vfs,
+        )
+        .map_err(NodeRusqliteError::from)?,
+        (Some(flags), None) => rusqlite::Connection::open_in_memory_with_flags(
+          rusqlite::OpenFlags::from_bits(flags as i32).unwrap(),
+        )
+        .map_err(NodeRusqliteError::from)?,
+        (None, Some(vfs)) => rusqlite::Connection::open_in_memory_with_flags_and_vfs(
+          rusqlite::OpenFlags::empty(),
+          &*vfs,
+        )
+        .map_err(NodeRusqliteError::from)?,
+        (None, None) => rusqlite::Connection::open_in_memory().map_err(NodeRusqliteError::from)?,
+      },
+      None => rusqlite::Connection::open_in_memory().map_err(NodeRusqliteError::from)?,
+    };
+
     Ok(Self { connection })
-  }
-
-  #[napi]
-  pub fn backup(
-    &self,
-    name: String,
-    dst_path: String,
-    callback: ThreadsafeFunction<Progress>,
-  ) -> napi::Result<()> {
-    let mut new_connection =
-      rusqlite::Connection::open(dst_path).map_err(NodeRusqliteError::from)?;
-
-    let backup = Backup::new_with_names(
-      &self.connection,
-      self.connection.path().unwrap(),
-      &mut new_connection,
-      &*name,
-    )
-    .map_err(NodeRusqliteError::from)?;
-
-    let callback = Arc::new(callback);
-
-    loop {
-      let progress = {
-        let raw = backup.progress();
-        Progress {
-          page_count: raw.pagecount,
-          remaining: raw.remaining,
-        }
-      };
-
-      callback.call(Ok(progress), ThreadsafeFunctionCallMode::NonBlocking);
-
-      match backup.step(2).map_err(NodeRusqliteError::from)? {
-        StepResult::Busy | StepResult::More | StepResult::Locked => {
-          thread::sleep(Duration::from_millis(100))
-        }
-        StepResult::Done => break,
-        _ => panic!(""),
-      }
-    }
-
-    Ok(())
-  }
-
-  #[napi]
-  pub fn restore(
-    &self,
-    name: String,
-    src_path: String,
-    callback: ThreadsafeFunction<Progress>,
-  ) -> napi::Result<()> {
-    let mut new_connection =
-      rusqlite::Connection::open(src_path).map_err(NodeRusqliteError::from)?;
-
-    let backup = Backup::new_with_names(
-      &self.connection,
-      self.connection.path().unwrap(),
-      &mut new_connection,
-      &*name,
-    )
-    .map_err(NodeRusqliteError::from)?;
-
-    let callback = Arc::new(callback);
-
-    loop {
-      let progress = {
-        let raw = backup.progress();
-        Progress {
-          page_count: raw.pagecount,
-          remaining: raw.remaining,
-        }
-      };
-
-      callback.call(Ok(progress), ThreadsafeFunctionCallMode::NonBlocking);
-
-      match backup.step(2).map_err(NodeRusqliteError::from)? {
-        StepResult::Busy | StepResult::More | StepResult::Locked => {
-          thread::sleep(Duration::from_millis(100))
-        }
-        StepResult::Done => break,
-        _ => panic!(""),
-      }
-    }
-
-    Ok(())
   }
 
   #[napi]
