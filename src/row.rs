@@ -25,39 +25,6 @@ impl Serialize for ValueRef<'_> {
   }
 }
 
-#[napi]
-pub struct Rows<'a> {
-  pub(crate) rows: rusqlite::Rows<'a>,
-}
-
-#[napi]
-impl Rows<'_> {
-  #[napi(js_name = "toJSON")]
-  pub fn to_json(&mut self, env: Env) -> napi::Result<Unknown<'_>> {
-    let mut rows = vec![];
-
-    while let Some(row) = self.rows.next().map_err(NodeRusqliteError::from)? {
-      let mut value_map = HashMap::new();
-
-      let columns = row.as_ref().columns();
-
-      for column in columns {
-        let raw_value = row
-          .get_ref(column.name())
-          .map_err(NodeRusqliteError::from)?;
-
-        let value = serde_json::to_value(ValueRef(raw_value))
-          .map_err(|err| rusqlite::Error::ToSqlConversionFailure(Box::new(err)))
-          .map_err(NodeRusqliteError::from)?;
-        value_map.insert(column.name().to_string(), value);
-      }
-      rows.push(value_map);
-    }
-
-    env.to_js_value(&rows)
-  }
-}
-
 #[napi(iterator)]
 pub struct RowIterator<'a> {
   pub(crate) rows: rusqlite::Rows<'a>,
