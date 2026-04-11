@@ -20,8 +20,8 @@ export declare class RusqliteColumnMetadata {
 }
 
 export declare class RusqliteConnection {
-  static open(path: string, options?: RusqliteConnectionOptions | undefined | null): ExternalObject<RusqliteConnection>
-  static openInMemory(options?: RusqliteConnectionOptions | undefined | null): ExternalObject<RusqliteConnection>
+  static open(path: string, options?: RusqliteConnectionOptions | undefined | null): RusqliteConnection
+  static openInMemory(options?: RusqliteConnectionOptions | undefined | null): RusqliteConnection
   backup(name: string, dstPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
   restore(name: string, srcPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
   columnExists(dbName: string | undefined | null, tableName: string, columnName: string): boolean

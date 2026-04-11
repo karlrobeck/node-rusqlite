@@ -182,6 +182,7 @@ export class Rusqlite {
   queryAll<T>(sql:string,sqlParams?:unknown[]) {
     let stmt = this.prepare(sql);
     const result = stmt.query(sqlParams) as T[]
+    stmt = null;
     return result
   }
 

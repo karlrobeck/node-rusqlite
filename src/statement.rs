@@ -63,13 +63,13 @@ pub struct RusqliteDetailedColumnMetadata {
   pub auto_increment: bool,
 }
 
-#[napi(custom_finalize)]
-pub struct RusqliteStatement<'env> {
-  pub(crate) statement: rusqlite::Statement<'env>,
+#[napi]
+pub struct ScopedStatement<'a> {
+  pub(crate) statement: rusqlite::Statement<'a>,
 }
 
 #[napi]
-impl RusqliteStatement<'_> {
+impl ScopedStatement<'_> {
   #[napi]
   pub fn column_names(&self) -> napi::Result<Vec<String>> {
     Ok(
@@ -271,19 +271,6 @@ impl RusqliteStatement<'_> {
   #[napi]
   pub fn clear_bindings(&mut self) -> napi::Result<()> {
     self.statement.clear_bindings();
-    Ok(())
-  }
-
-  #[napi(js_name = "[Symbol.dispose]")]
-  pub fn dispose(&mut self) -> napi::Result<()> {
-    Ok(())
-  }
-}
-
-#[napi]
-impl<'env> ObjectFinalize for RusqliteStatement<'env> {
-  fn finalize(self, env: napi::Env) -> napi::Result<()> {
-    self.statement.finalize().map_err(RusqliteError::from)?;
     Ok(())
   }
 }

@@ -1,7 +1,7 @@
 use std::{ops::Deref, sync::Arc, thread, time::Duration};
 
 use napi::{
-  Env,
+  Either, Env,
   bindgen_prelude::{Buffer, External, ObjectFinalize, Reference, SharedReference},
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
 };
@@ -15,7 +15,7 @@ use rusqlite::{
 use crate::{
   column::RusqliteConnectionColumnMetadata,
   errors::RusqliteError,
-  statement::{RusqlitePrepFlags, RusqliteStatement},
+  statement::{RusqlitePrepFlags, ScopedStatement},
   transaction::{
     RusqliteSavepoint, RusqliteTransaction, RusqliteTransactionBehavior, RusqliteTransactionState,
   },
@@ -535,8 +535,8 @@ impl RusqliteSharedConnection<'_> {
   }
 
   #[napi]
-  pub fn prepare(&self, sql: String) -> napi::Result<RusqliteStatement<'_>> {
-    Ok(RusqliteStatement {
+  pub fn prepare(&self, sql: String) -> napi::Result<ScopedStatement<'_>> {
+    Ok(ScopedStatement {
       statement: self.connection.prepare(&sql).map_err(RusqliteError::from)?,
     })
   }
@@ -546,8 +546,8 @@ impl RusqliteSharedConnection<'_> {
     &self,
     sql: String,
     flags: RusqlitePrepFlags,
-  ) -> napi::Result<RusqliteStatement<'_>> {
-    Ok(RusqliteStatement {
+  ) -> napi::Result<ScopedStatement<'_>> {
+    Ok(ScopedStatement {
       statement: self
         .connection
         .prepare_with_flags(&sql, PrepFlags::from_bits(flags as u32).unwrap())
@@ -619,16 +619,16 @@ impl RusqliteConnection {
   pub fn open(
     path: String,
     options: Option<RusqliteConnectionOptions>,
-  ) -> napi::Result<External<RusqliteConnection>> {
+  ) -> napi::Result<RusqliteConnection> {
     let connection = rusqlite::Connection::open(&path).map_err(RusqliteError::from)?;
-    Ok(External::new(Self { connection }))
+    Ok(Self { connection })
   }
   #[napi]
   pub fn open_in_memory(
     options: Option<RusqliteConnectionOptions>,
-  ) -> napi::Result<External<RusqliteConnection>> {
+  ) -> napi::Result<RusqliteConnection> {
     let connection = rusqlite::Connection::open_in_memory().map_err(RusqliteError::from)?;
-    Ok(External::new(Self { connection }))
+    Ok(Self { connection })
   }
 
   #[napi]
@@ -1110,8 +1110,8 @@ impl RusqliteConnection {
   }
 
   #[napi]
-  pub fn prepare(&self, env: Env, sql: String) -> napi::Result<RusqliteStatement<'_>> {
-    Ok(RusqliteStatement {
+  pub fn prepare(&self, env: Env, sql: String) -> napi::Result<ScopedStatement<'_>> {
+    Ok(ScopedStatement {
       statement: self.connection.prepare(&sql).map_err(RusqliteError::from)?,
     })
   }
@@ -1121,8 +1121,8 @@ impl RusqliteConnection {
     &self,
     sql: String,
     flags: RusqlitePrepFlags,
-  ) -> napi::Result<RusqliteStatement<'_>> {
-    Ok(RusqliteStatement {
+  ) -> napi::Result<ScopedStatement<'_>> {
+    Ok(ScopedStatement {
       statement: self
         .connection
         .prepare_with_flags(&sql, PrepFlags::from_bits(flags as u32).unwrap())
@@ -1190,12 +1190,11 @@ impl RusqliteConnection {
 
 #[napi]
 impl ObjectFinalize for RusqliteConnection {
-  fn finalize(mut self, _env: Env) -> napi::Result<()> {
-    let conn = std::mem::replace(
-      &mut self.connection,
-      Connection::open_in_memory().map_err(RusqliteError::from)?,
-    );
-    conn.close().map_err(|(_, err)| RusqliteError::from(err))?;
+  fn finalize(self, _env: Env) -> napi::Result<()> {
+    self
+      .connection
+      .close()
+      .map_err(|(_, err)| RusqliteError::from(err))?;
     Ok(())
   }
 }

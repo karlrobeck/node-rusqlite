@@ -1,11 +1,7 @@
-import { RusqliteConnection, RusqliteError } from "../bindings/index";
+import { executeBatch, RusqliteConnection } from "../bindings/index";
 
-const db = RusqliteConnection.openInMemory();
+let conn = RusqliteConnection.openInMemory();
 
-const trx = db.transaction()
+executeBatch(conn,'select sqlite_version()');
 
-const result = db.queryOne("select sqlite_version()",new Uint8Array())
-
-const payload = JSON.parse(result.toString())
-
-console.log(payload)
+console.log('freed')
