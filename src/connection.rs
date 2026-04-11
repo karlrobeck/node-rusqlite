@@ -1,19 +1,13 @@
-use std::{
-  env,
-  ops::{Deref, DerefMut},
-  sync::Arc,
-  thread,
-  time::Duration,
-};
+use std::{ops::Deref, sync::Arc, thread, time::Duration};
 
 use napi::{
   Env,
-  bindgen_prelude::{Array, Buffer, Function, ObjectFinalize, Reference},
+  bindgen_prelude::{Array, Buffer, Function, ObjectFinalize},
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
 };
 use napi_derive::napi;
 use rusqlite::{
-  InterruptHandle, PrepFlags,
+  PrepFlags,
   backup::{Backup, StepResult},
   params_from_iter,
 };
@@ -115,12 +109,12 @@ pub struct RusqliteConnectionOptions {
 }
 
 #[napi]
-pub struct RusqliteInterruptHandle {
-  pub(crate) handle: InterruptHandle,
+pub struct InterruptHandle {
+  pub(crate) handle: rusqlite::InterruptHandle,
 }
 
 #[napi]
-impl RusqliteInterruptHandle {
+impl InterruptHandle {
   #[napi]
   pub fn interrupt(&self) {
     self.handle.interrupt();
@@ -617,9 +611,9 @@ impl ScopedConnection<'_> {
   }
 
   #[napi]
-  pub fn get_interrupt_handle(&self) -> napi::Result<RusqliteInterruptHandle> {
+  pub fn get_interrupt_handle(&self) -> napi::Result<InterruptHandle> {
     let handle = self.connection.get_interrupt_handle();
-    Ok(RusqliteInterruptHandle { handle })
+    Ok(InterruptHandle { handle })
   }
 
   #[napi]
@@ -1234,9 +1228,9 @@ impl Connection {
   }
 
   #[napi]
-  pub fn get_interrupt_handle(&self) -> napi::Result<RusqliteInterruptHandle> {
+  pub fn get_interrupt_handle(&self) -> napi::Result<InterruptHandle> {
     let handle = self.connection.get_interrupt_handle();
-    Ok(RusqliteInterruptHandle { handle })
+    Ok(InterruptHandle { handle })
   }
 
   #[napi]
