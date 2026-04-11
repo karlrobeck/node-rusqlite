@@ -20,11 +20,11 @@ export declare class Connection {
   columnMetadata(dbName: string | undefined | null, tableName: string, columnName: string): ConnectionColumnMetadata
   dbConfig(config: RusqliteDbConfig): void
   setDbConfig(config: RusqliteDbConfig, on: boolean): void
-  pragmaQueryValue(schemaName: string | undefined | null, pragmaName: string): Buffer
-  pragmaQuery(schemaName: string | undefined | null, pragmaName: string): Buffer
-  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[], callback: ((err: Error | null, arg: Buffer) => any)): void
-  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): void
-  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): Buffer
+  pragmaQueryValue(schemaName: string | undefined | null, pragmaName: string): unknown
+  pragmaQuery(schemaName: string | undefined | null, pragmaName: string): Record<string,unknown>
+  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[], callback: (value:Record<string,unknown>) => void): void
+  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): Promise<void>
+  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): Record<string,unknown>
   transaction(callback: (connection: ScopedConnection) => void): void
   transactionWithBehavior(behavior: TransactionBehavior, callback: (connection: ScopedConnection) => void): void
   uncheckedTransaction(callback: (connection: ScopedConnection) => void): void
@@ -37,8 +37,8 @@ export declare class Connection {
   path(): string
   releaseMemory(): void
   lastInsertRowid(): number
-  queryRow(sql: string, sqlParams: unknown[]): Buffer
-  queryOne(sql: string, params: unknown[]): Buffer
+  queryRow(sql: string, sqlParams: unknown[]): Record<string,unknown>
+  queryOne(sql: string, params: unknown[]): Record<string,unknown>
   prepare(sql: String, callback: (statement: ScopedStatement) => void): void
   prepareWithFlags(sql: string, flags: RusqlitePrepFlags, callback: any): void
   getInterruptHandle(): InterruptHandle
@@ -81,11 +81,11 @@ export declare class ScopedConnection {
   columnMetadata(dbName: string | undefined | null, tableName: string, columnName: string): ConnectionColumnMetadata
   dbConfig(config: RusqliteDbConfig): void
   setDbConfig(config: RusqliteDbConfig, on: boolean): void
-  pragmaQueryValue(schemaName: string | undefined | null, pragmaName: string): Buffer
-  pragmaQuery(schemaName: string | undefined | null, pragmaName: string): Buffer
-  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[], callback: ((err: Error | null, arg: Buffer) => any)): void
+  pragmaQueryValue(schemaName: string | undefined | null, pragmaName: string): unknown
+  pragmaQuery(schemaName: string | undefined | null, pragmaName: string): Record<string,unknown>
+  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[], callback: (value: Record<string, unknown>) => void): void
   pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): void
-  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): Buffer
+  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): Record<string,unknown>
   savepoint(callback: (transaction: ScopedConnection) => void): void
   savepointWithName(name: string, callback: (transaction: ScopedConnection) => void): void
   transactionState(dbName?: string | undefined | null): TransactionState
@@ -94,8 +94,8 @@ export declare class ScopedConnection {
   path(): string
   releaseMemory(): void
   lastInsertRowid(): number
-  queryRow(sql: string, sqlParams: unknown[]): Buffer
-  queryOne(sql: string, sqlParams: unknown[]): Buffer
+  queryRow(sql: string, sqlParams: unknown[]): Record<string,unknown>
+  queryOne(sql: string, sqlParams: unknown[]): Record<string,unknown>
   prepare(sql:string, callback: (statement: ScopedStatement) => void): void
   prepareWithFlags(sql:string, flags: RusqlitePrepFlags, callback: (statement: ScopedStatement) => void): void
   getInterruptHandle(): InterruptHandle

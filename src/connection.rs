@@ -218,7 +218,7 @@ impl ScopedConnection<'_> {
     Ok(())
   }
 
-  #[napi]
+  #[napi(ts_return_type = "unknown")]
   pub fn pragma_query_value(
     &self,
     env: Env,
@@ -240,7 +240,7 @@ impl ScopedConnection<'_> {
     env.to_js_value(&value)
   }
 
-  #[napi]
+  #[napi(ts_return_type = "Record<string,unknown>")]
   pub fn pragma_query(
     &self,
     env: Env,
@@ -273,7 +273,9 @@ impl ScopedConnection<'_> {
     schema_name: Option<String>,
     pragma_name: String,
     pragma_value: Array,
-    callback: Function<Unknown<'_>>,
+    #[napi(ts_arg_type = "(value: Record<string, unknown>) => void")] callback: Function<
+      Unknown<'_>,
+    >,
   ) -> napi::Result<()> {
     let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
     let mut value = HashMap::new();
@@ -326,7 +328,7 @@ impl ScopedConnection<'_> {
     Ok(())
   }
 
-  #[napi]
+  #[napi(ts_return_type = "Record<string,unknown>")]
   pub fn pragma_update_and_check(
     &self,
     env: Env,
@@ -353,30 +355,6 @@ impl ScopedConnection<'_> {
 
     env.to_js_value(&value)
   }
-
-  // #[napi(ts_args_type = "callback: (transaction: ScopedConnection) => void")]
-  // pub fn unchecked_transaction(
-  //   &mut self,
-  //   callback: Function<ScopedConnection>,
-  // ) -> napi::Result<()> {
-  //   let transaction = self
-  //     .connection
-  //     .unchecked_transaction()
-  //     .map_err(NodeRusqliteError::from)?;
-
-  //   let mutderef_conn = transaction.deref();
-
-  //   let scoped = ScopedConnection {
-  //     connection: &mut deref_conn,
-  //   };
-
-  //   match callback.call(scoped) {
-  //     Ok(_) => transaction.commit().map_err(NodeRusqliteError::from)?,
-  //     Err(_) => transaction.rollback().map_err(NodeRusqliteError::from)?,
-  //   }
-
-  //   Ok(())
-  // }
 
   #[napi(ts_args_type = "callback: (transaction: ScopedConnection) => void")]
   pub fn savepoint(&mut self, callback: Function<ScopedConnection>) -> napi::Result<()> {
@@ -476,7 +454,7 @@ impl ScopedConnection<'_> {
     Ok(self.connection.last_insert_rowid())
   }
 
-  #[napi]
+  #[napi(ts_return_type = "Record<string,unknown>")]
   pub fn query_row(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<Unknown<'_>> {
     let sql_params = env
       .from_js_value::<Vec<Value>, _>(sql_params)
@@ -490,7 +468,7 @@ impl ScopedConnection<'_> {
     env.to_js_value(&row)
   }
 
-  #[napi]
+  #[napi(ts_return_type = "Record<string,unknown>")]
   pub fn query_one(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<Unknown<'_>> {
     let sql_params = env
       .from_js_value::<Vec<Value>, _>(sql_params)
@@ -729,7 +707,7 @@ impl Connection {
     Ok(())
   }
 
-  #[napi]
+  #[napi(ts_return_type = "unknown")]
   pub fn pragma_query_value(
     &self,
     env: Env,
@@ -751,7 +729,7 @@ impl Connection {
     env.to_js_value(&value)
   }
 
-  #[napi]
+  #[napi(ts_return_type = "Record<string,unknown>")]
   pub fn pragma_query(
     &self,
     env: Env,
@@ -784,7 +762,7 @@ impl Connection {
     schema_name: Option<String>,
     pragma_name: String,
     pragma_value: Array,
-    callback: Function<Unknown<'_>>,
+    #[napi(ts_arg_type = "(value:Record<string,unknown>) => void")] callback: Function<Unknown<'_>>,
   ) -> napi::Result<()> {
     let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
     let mut value = HashMap::new();
@@ -814,7 +792,7 @@ impl Connection {
     Ok(())
   }
 
-  #[napi]
+  #[napi(ts_return_type = "Promise<void>")]
   pub fn pragma_update(
     &self,
     env: Env,
@@ -839,7 +817,7 @@ impl Connection {
     Ok(())
   }
 
-  #[napi]
+  #[napi(ts_return_type = "Record<string,unknown>")]
   pub fn pragma_update_and_check(
     &self,
     env: Env,
