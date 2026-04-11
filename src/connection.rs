@@ -99,7 +99,7 @@ impl Deref for Connection {
 
 #[napi]
 pub struct ScopedConnection<'a> {
-  pub(crate) connection: &'a mut rusqlite::Connection,
+  pub(crate) connection: &'a rusqlite::Connection,
 }
 
 #[napi(object)]
@@ -457,19 +457,20 @@ impl ScopedConnection<'_> {
 
   #[napi(ts_args_type = "callback: (transaction: ScopedConnection) => void")]
   pub fn savepoint(&mut self, callback: Function<ScopedConnection>) -> napi::Result<()> {
-    let mut sp = match &mut self.connection {
-      ConnectionHandle::Savepoint(s) => (*s).savepoint(),
-      _ => panic!(""),
-    }
-    .map_err(NodeRusqliteError::from)?;
+    let mut savepoint = self
+      .connection
+      .savepoint()
+      .map_err(NodeRusqliteError::from)?;
+
+    let deref_conn = savepoint.deref();
 
     let scoped = ScopedConnection {
-      connection: ConnectionHandle::Savepoint(&mut sp),
+      connection: savepoint.deref(),
     };
 
     match callback.call(scoped) {
-      Ok(_) => sp.commit().map_err(NodeRusqliteError::from)?,
-      Err(_) => sp.rollback().map_err(NodeRusqliteError::from)?,
+      Ok(_) => savepoint.commit().map_err(NodeRusqliteError::from)?,
+      Err(_) => savepoint.rollback().map_err(NodeRusqliteError::from)?,
     }
 
     Ok(())
@@ -489,7 +490,7 @@ impl ScopedConnection<'_> {
     let deref_conn = savepoint.deref();
 
     let scoped = ScopedConnection {
-      connection: &mut savepoint,
+      connection: deref_conn,
     };
 
     match callback.call(scoped) {
