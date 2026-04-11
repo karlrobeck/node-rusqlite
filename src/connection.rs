@@ -177,7 +177,7 @@ impl ScopedConnection<'_> {
       rusqlite::Connection::open(src_path).map_err(NodeRusqliteError::from)?;
 
     let backup = Backup::new_with_names(
-      &self.connection,
+      self.connection,
       self.connection.path().unwrap(),
       &mut new_connection,
       &*name,
