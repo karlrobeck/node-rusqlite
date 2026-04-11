@@ -16,7 +16,7 @@ use crate::{
   column::ConnectionColumnMetadata,
   errors::NodeRusqliteError,
   statement::{RusqlitePrepFlags, ScopedStatement},
-  transaction::{ScopedSavepoint, ScopedTransaction, TransactionBehavior, TransactionState},
+  transaction::{TransactionBehavior, TransactionState},
   utils::{Value, row_to_buffer},
 };
 
@@ -434,15 +434,17 @@ impl ScopedConnection<'_> {
   #[napi]
   pub fn unchecked_transaction(
     &mut self,
-    callback: Function<ScopedTransaction>,
+    callback: Function<ScopedConnection>,
   ) -> napi::Result<()> {
     let transaction = self
       .connection
       .unchecked_transaction()
       .map_err(NodeRusqliteError::from)?;
 
-    let scoped = ScopedTransaction {
-      transaction: &transaction,
+    let deref_conn = transaction.deref();
+
+    let scoped = ScopedConnection {
+      connection: deref_conn,
     };
 
     match callback.call(scoped) {
@@ -534,13 +536,17 @@ impl ScopedConnection<'_> {
   }
 
   #[napi]
-  pub fn prepare(&self, sql: String) -> napi::Result<ScopedStatement<'_>> {
-    Ok(ScopedStatement {
-      statement: self
-        .connection
-        .prepare(&sql)
-        .map_err(NodeRusqliteError::from)?,
-    })
+  pub fn prepare(&self, sql: String, callback: Function<ScopedStatement>) -> napi::Result<()> {
+    let statement = self
+      .connection
+      .prepare(&sql)
+      .map_err(NodeRusqliteError::from)?;
+
+    let scoped = ScopedStatement { statement };
+
+    callback.call(scoped)?;
+
+    Ok(())
   }
 
   #[napi]
@@ -548,13 +554,18 @@ impl ScopedConnection<'_> {
     &self,
     sql: String,
     flags: RusqlitePrepFlags,
-  ) -> napi::Result<ScopedStatement<'_>> {
-    Ok(ScopedStatement {
-      statement: self
-        .connection
-        .prepare_with_flags(&sql, PrepFlags::from_bits(flags as u32).unwrap())
-        .map_err(NodeRusqliteError::from)?,
-    })
+    callback: Function<ScopedStatement>,
+  ) -> napi::Result<()> {
+    let statement = self
+      .connection
+      .prepare_with_flags(&sql, PrepFlags::from_bits(flags as u32).unwrap())
+      .map_err(NodeRusqliteError::from)?;
+
+    let scoped = ScopedStatement { statement };
+
+    callback.call(scoped)?;
+
+    Ok(())
   }
 
   #[napi]
@@ -938,18 +949,22 @@ impl RusqliteConnection {
   }
 
   #[napi(ts_args_type = "callback: (transaction: ScopedTransaction) => void")]
-  pub fn transaction(&mut self, callback: Function<ScopedTransaction>) -> napi::Result<()> {
+  pub fn transaction(&mut self, callback: Function<ScopedConnection>) -> napi::Result<()> {
     let transaction = self
       .connection
       .transaction()
       .map_err(NodeRusqliteError::from)?;
 
-    let scoped = ScopedTransaction { transaction };
+    let deref_conn = transaction.deref();
+
+    let scoped = ScopedConnection {
+      connection: deref_conn,
+    };
 
     match callback.call(scoped) {
       Ok(_) => transaction.commit().map_err(NodeRusqliteError::from)?,
       Err(_) => transaction.rollback().map_err(NodeRusqliteError::from)?,
-    };
+    }
 
     Ok(())
   }
@@ -960,15 +975,17 @@ impl RusqliteConnection {
   pub fn transaction_with_behavior(
     &mut self,
     behavior: TransactionBehavior,
-    callback: Function<ScopedTransaction>,
+    callback: Function<ScopedConnection>,
   ) -> napi::Result<()> {
     let transaction = self
       .connection
       .transaction_with_behavior(behavior.into())
       .map_err(NodeRusqliteError::from)?;
 
-    let scoped = ScopedTransaction {
-      transaction: &transaction,
+    let deref_conn = transaction.deref();
+
+    let scoped = ScopedConnection {
+      connection: deref_conn,
     };
 
     match callback.call(scoped) {
@@ -982,15 +999,19 @@ impl RusqliteConnection {
   #[napi(ts_args_type = "callback: (transaction: ScopedTransaction) => void")]
   pub fn unchecked_transaction(
     &mut self,
-    callback: Function<ScopedTransaction>,
+    env: Env,
+    reference: Reference<RusqliteConnection>,
+    callback: Function<ScopedConnection>,
   ) -> napi::Result<()> {
     let transaction = self
       .connection
       .unchecked_transaction()
       .map_err(NodeRusqliteError::from)?;
 
-    let scoped = ScopedTransaction {
-      transaction: &transaction,
+    let deref_conn = transaction.deref();
+
+    let scoped = ScopedConnection {
+      connection: deref_conn,
     };
 
     match callback.call(scoped) {
@@ -1002,44 +1023,49 @@ impl RusqliteConnection {
   }
 
   #[napi]
-  pub fn savepoint(
-    &mut self,
-    env: Env,
-    reference: Reference<RusqliteConnection>,
-  ) -> napi::Result<ScopedSavepoint> {
-    Ok(ScopedSavepoint {
-      savepoint: reference.share_with(env, |conn| {
-        Ok(
-          conn
-            .connection
-            .savepoint()
-            .map_err(NodeRusqliteError::from)?,
-        )
-      })?,
-      name: None,
-      commited: false,
-    })
+  pub fn savepoint(&mut self, callback: Function<ScopedConnection>) -> napi::Result<()> {
+    let mut savepoint = self
+      .connection
+      .savepoint()
+      .map_err(NodeRusqliteError::from)?;
+
+    let deref_conn = savepoint.deref();
+
+    let scoped = ScopedConnection {
+      connection: deref_conn,
+    };
+
+    match callback.call(scoped) {
+      Ok(_) => savepoint.commit().map_err(NodeRusqliteError::from)?,
+      Err(_) => savepoint.rollback().map_err(NodeRusqliteError::from)?,
+    };
+
+    Ok(())
   }
 
   #[napi]
   pub fn savepoint_with_name(
     &mut self,
-    env: Env,
-    reference: Reference<RusqliteConnection>,
     name: String,
-  ) -> napi::Result<ScopedSavepoint> {
-    Ok(ScopedSavepoint {
-      savepoint: reference.share_with(env, |conn| {
-        Ok(
-          conn
-            .connection
-            .savepoint_with_name(name.clone())
-            .map_err(NodeRusqliteError::from)?,
-        )
-      })?,
-      name: Some(name),
-      commited: false,
-    })
+    callback: Function<ScopedConnection>,
+  ) -> napi::Result<()> {
+    let mut savepoint = self
+      .connection
+      .savepoint_with_name(&name)
+      .map_err(NodeRusqliteError::from)?;
+
+    let deref_conn = savepoint.deref();
+
+    let scoped = ScopedConnection {
+      connection: deref_conn,
+    };
+
+    match callback.call(scoped) {
+      Ok(_) => savepoint.commit().map_err(NodeRusqliteError::from)?,
+      Err(_) => savepoint.rollback().map_err(NodeRusqliteError::from)?,
+    };
+
+    Ok(())
   }
 
   #[napi]

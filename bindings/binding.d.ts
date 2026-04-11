@@ -49,8 +49,8 @@ export declare class RusqliteConnection {
   transaction(callback: (transaction: ScopedTransaction) => void): void
   transactionWithBehavior(behavior: TransactionBehavior, callback: (transaction: ScopedTransaction) => void): void
   uncheckedTransaction(callback: (transaction: ScopedTransaction) => void): void
-  savepoint(): ScopedSavepoint
-  savepointWithName(name: string): ScopedSavepoint
+  savepoint(callback: any): void
+  savepointWithName(name: string, callback: any): void
   transactionState(dbName?: string | undefined | null): TransactionState
   setTransactionBehavior(behavior: TransactionBehavior): void
   executeBatch(sql: string): void
@@ -78,7 +78,7 @@ export declare class RusqliteInterruptHandle {
   interrupt(): void
 }
 
-export declare class RusqliteSharedConnection {
+export declare class ScopedConnection {
   backup(name: string, dstPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
   restore(name: string, srcPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
   columnExists(dbName: string | undefined | null, tableName: string, columnName: string): boolean
@@ -91,7 +91,7 @@ export declare class RusqliteSharedConnection {
   pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array, callback: ((err: Error | null, arg: Buffer) => any)): void
   pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): void
   pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: Uint8Array): Buffer
-  uncheckedTransaction(reference: RusqliteConnection): ScopedTransaction
+  uncheckedTransaction(callback: any): void
   transactionState(dbName?: string | undefined | null): TransactionState
   executeBatch(sql: string): void
   execute(sql: string, sqlParams: Uint8Array): number
@@ -111,17 +111,6 @@ export declare class RusqliteSharedConnection {
   isReadonly(dbName: string): boolean
   dbName(index: number): string
   isInterrupted(): boolean
-}
-
-export declare class ScopedSavepoint {
-  savepoint(reference: RusqliteConnection): ScopedSavepoint
-  savepointWithName(reference: RusqliteConnection, name: string): ScopedSavepoint
-  dropBehavior(): DropBehavior
-  setDropBehavior(dropBehavior: DropBehavior): void
-  commit(): void
-  rollback(): void
-  finish(): void
-  get connection(): RusqliteSharedConnection
 }
 
 export declare class ScopedStatement {
@@ -145,13 +134,6 @@ export declare class ScopedStatement {
   isExplain(): number
   readonly(): boolean
   clearBindings(): void
-}
-
-export declare class ScopedTransaction {
-  /** savepoint */
-  savepoint(reference: RusqliteConnection): ScopedSavepoint
-  savepointWithName(reference: RusqliteConnection, name: string): ScopedSavepoint
-  get connection(): RusqliteSharedConnection
 }
 
 export interface ConnectionColumnMetadata {
