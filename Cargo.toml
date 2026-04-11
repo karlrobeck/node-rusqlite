@@ -20,7 +20,7 @@ crate-type = ["cdylib"]
 [dependencies]
 napi = { version = "3.8.4", features = ["serde-json"] }
 napi-derive = "3.5.3"
-rusqlite = { path = "./crates/rusqlite", features = ["modern-full"] }
+rusqlite = { path = "./crates/rusqlite", features = ["bundled-full"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 

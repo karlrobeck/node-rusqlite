@@ -43,7 +43,7 @@ export declare class Connection {
   queryOne(sql: string, params: unknown[]): Buffer
   prepare(sql: String, callback: (statement: ScopedStatement) => void): void
   prepareWithFlags(sql: string, flags: RusqlitePrepFlags, callback: any): void
-  getInterruptHandle(): RusqliteInterruptHandle
+  getInterruptHandle(): InterruptHandle
   changes(): number
   totalChanges(): number
   isAutocommit(): boolean
@@ -53,6 +53,10 @@ export declare class Connection {
   dbName(index: number): string
   isInterrupted(): boolean
 
+}
+
+export declare class InterruptHandle {
+  interrupt(): void
 }
 
 /**
@@ -73,10 +77,6 @@ export declare class Rows {
   get(index: number): unknown | null
 }
 
-export declare class RusqliteInterruptHandle {
-  interrupt(): void
-}
-
 export declare class ScopedConnection {
   backup(name: string, dstPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
   restore(name: string, srcPath: string, callback: ((err: Error | null, arg: Progress) => any)): void
@@ -90,7 +90,6 @@ export declare class ScopedConnection {
   pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[], callback: ((err: Error | null, arg: Buffer) => any)): void
   pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): void
   pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): Buffer
-  uncheckedTransaction(callback: (transaction: ScopedConnection) => void): void
   savepoint(callback: (transaction: ScopedConnection) => void): void
   savepointWithName(name: string, callback: (transaction: ScopedConnection) => void): void
   transactionState(dbName?: string | undefined | null): TransactionState
@@ -103,7 +102,7 @@ export declare class ScopedConnection {
   queryOne(sql: string, sqlParams: unknown[]): Buffer
   prepare(sql:string, callback: (statement: ScopedStatement) => void): void
   prepareWithFlags(sql:string, flags: RusqlitePrepFlags, callback: (statement: ScopedStatement) => void): void
-  getInterruptHandle(): RusqliteInterruptHandle
+  getInterruptHandle(): InterruptHandle
   changes(): number
   totalChanges(): number
   isAutocommit(): boolean
