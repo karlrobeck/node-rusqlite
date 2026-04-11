@@ -628,6 +628,7 @@ impl RusqliteConnection {
     let connection = rusqlite::Connection::open(&path).map_err(NodeRusqliteError::from)?;
     Ok(Self { connection })
   }
+
   #[napi]
   pub fn open_in_memory(
     options: Option<RusqliteConnectionOptions>,
@@ -943,9 +944,7 @@ impl RusqliteConnection {
       .transaction()
       .map_err(NodeRusqliteError::from)?;
 
-    let scoped = ScopedTransaction {
-      transaction: &transaction,
-    };
+    let scoped = ScopedTransaction { transaction };
 
     match callback.call(scoped) {
       Ok(_) => transaction.commit().map_err(NodeRusqliteError::from)?,

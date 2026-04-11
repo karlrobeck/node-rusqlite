@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use napi::{
   Env,
-  bindgen_prelude::{Reference, SharedReference},
+  bindgen_prelude::{Function, Reference, SharedReference},
 };
 use napi_derive::napi;
 use rusqlite::{Connection, Transaction};
@@ -67,20 +67,26 @@ impl From<rusqlite::TransactionState> for TransactionState {
 }
 
 #[napi]
-pub struct ScopedTransaction<'a> {
-  pub(crate) transaction: &'a Transaction<'a>,
+pub struct ScopedTransaction {
+  pub(crate) transaction: SharedReference<RusqliteConnection, Transaction<'static>>,
 }
 
 #[napi]
-impl ScopedTransaction<'_> {
+impl ScopedTransaction {
   /// savepoint
   #[napi]
   pub fn savepoint(
     &mut self,
     env: Env,
     reference: Reference<RusqliteConnection>,
-  ) -> napi::Result<ScopedSavepoint> {
-    Ok(ScopedSavepoint {
+    callback: Function<ScopedSavepoint>,
+  ) -> napi::Result<()> {
+    let savepoint = self
+      .transaction
+      .savepoint()
+      .map_err(NodeRusqliteError::from)?;
+
+    let scoped = ScopedSavepoint {
       savepoint: reference.share_with(env, |conn| {
         Ok(
           conn
@@ -89,9 +95,14 @@ impl ScopedTransaction<'_> {
             .map_err(NodeRusqliteError::from)?,
         )
       })?,
-      name: Some("_rusqlite_sp".to_string()),
-      commited: false,
-    })
+    };
+
+    match callback.call(scoped) {
+      Ok(_) => savepoint.commit().map_err(NodeRusqliteError::from)?,
+      Err(_) => savepoint.finish().map_err(NodeRusqliteError::from)?,
+    }
+
+    Ok(())
   }
 
   #[napi]
@@ -100,8 +111,14 @@ impl ScopedTransaction<'_> {
     env: Env,
     reference: Reference<RusqliteConnection>,
     name: String,
-  ) -> napi::Result<ScopedSavepoint> {
-    Ok(ScopedSavepoint {
+    callback: Function<ScopedSavepoint>,
+  ) -> napi::Result<()> {
+    let savepoint = self
+      .transaction
+      .savepoint_with_name(name.clone())
+      .map_err(NodeRusqliteError::from)?;
+
+    let scoped = ScopedSavepoint {
       savepoint: reference.share_with(env, |conn| {
         Ok(
           conn
@@ -110,9 +127,27 @@ impl ScopedTransaction<'_> {
             .map_err(NodeRusqliteError::from)?,
         )
       })?,
-      name: Some(name),
-      commited: false,
-    })
+    };
+
+    match callback.call(scoped) {
+      Ok(_) => savepoint.commit().map_err(NodeRusqliteError::from)?,
+      Err(_) => savepoint.finish().map_err(NodeRusqliteError::from)?,
+    }
+
+    // Ok(ScopedSavepoint {
+    //   savepoint: reference.share_with(env, |conn| {
+    //     Ok(
+    //       conn
+    //         .connection
+    //         .savepoint_with_name(name.clone())
+    //         .map_err(NodeRusqliteError::from)?,
+    //     )
+    //   })?,
+    //   name: Some(name),
+    //   commited: false,
+    // })
+
+    Ok(())
   }
 
   #[napi(getter)]
@@ -123,7 +158,7 @@ impl ScopedTransaction<'_> {
   }
 }
 
-impl Deref for ScopedTransaction<'_> {
+impl Deref for ScopedTransaction {
   type Target = Connection;
 
   fn deref(&self) -> &Self::Target {
@@ -134,8 +169,6 @@ impl Deref for ScopedTransaction<'_> {
 #[napi]
 pub struct ScopedSavepoint {
   pub(crate) savepoint: SharedReference<RusqliteConnection, rusqlite::Savepoint<'static>>,
-  pub(crate) name: Option<String>,
-  pub(crate) commited: bool,
 }
 
 #[napi]
@@ -146,18 +179,19 @@ impl ScopedSavepoint {
     env: Env,
     reference: Reference<RusqliteConnection>,
   ) -> napi::Result<ScopedSavepoint> {
-    Ok(ScopedSavepoint {
-      savepoint: reference.share_with(env, |conn| {
-        Ok(
-          conn
-            .connection
-            .savepoint()
-            .map_err(NodeRusqliteError::from)?,
-        )
-      })?,
-      name: Some("_rusqlite_sp".to_string()),
-      commited: self.commited,
-    })
+    // Ok(ScopedSavepoint {
+    //   savepoint: reference.share_with(env, |conn| {
+    //     Ok(
+    //       conn
+    //         .connection
+    //         .savepoint()
+    //         .map_err(NodeRusqliteError::from)?,
+    //     )
+    //   })?,
+    //   name: Some("_rusqlite_sp".to_string()),
+    //   commited: self.commited,
+    // })
+    todo!("")
   }
 
   #[napi]
@@ -167,72 +201,19 @@ impl ScopedSavepoint {
     reference: Reference<RusqliteConnection>,
     name: String,
   ) -> napi::Result<ScopedSavepoint> {
-    Ok(ScopedSavepoint {
-      savepoint: reference.share_with(env, |conn| {
-        Ok(
-          conn
-            .connection
-            .savepoint_with_name(name.clone())
-            .map_err(NodeRusqliteError::from)?,
-        )
-      })?,
-      name: Some(name),
-      commited: self.commited,
-    })
-  }
-
-  #[napi]
-  pub fn drop_behavior(&self) -> napi::Result<DropBehavior> {
-    let behavior = match self.savepoint.drop_behavior() {
-      rusqlite::DropBehavior::Commit => DropBehavior::Commit,
-      rusqlite::DropBehavior::Ignore => DropBehavior::Ignore,
-      rusqlite::DropBehavior::Panic => DropBehavior::Panic,
-      rusqlite::DropBehavior::Rollback => DropBehavior::Rollback,
-      _ => panic!("undefined behavior"),
-    };
-
-    Ok(behavior)
-  }
-
-  #[napi]
-  pub fn set_drop_behavior(&mut self, drop_behavior: DropBehavior) -> napi::Result<()> {
-    self.savepoint.set_drop_behavior(drop_behavior.into());
-    Ok(())
-  }
-
-  #[napi]
-  pub fn commit(&mut self) -> napi::Result<()> {
-    self
-      .savepoint
-      .execute_batch(&format!(
-        "RELEASE {}",
-        self.name.as_ref().map_or("_rusqlite_sp", |v| v)
-      ))
-      .map_err(NodeRusqliteError::from)?;
-    self.commited = true;
-    Ok(())
-  }
-
-  #[napi]
-  pub fn rollback(&mut self) -> napi::Result<()> {
-    self.savepoint.rollback().map_err(NodeRusqliteError::from)?;
-    Ok(())
-  }
-
-  #[napi]
-  pub fn finish(&mut self) -> napi::Result<()> {
-    if self.commited {
-      return Ok(());
-    }
-
-    match self.drop_behavior()? {
-      DropBehavior::Commit => self
-        .commit()
-        .or_else(|_| self.rollback().and_then(|()| self.commit())),
-      DropBehavior::Ignore => Ok(()),
-      DropBehavior::Panic => panic!("savepoint was not committed or rolled back"),
-      DropBehavior::Rollback => self.rollback().and_then(|()| self.commit()),
-    }
+    // Ok(ScopedSavepoint {
+    //   savepoint: reference.share_with(env, |conn| {
+    //     Ok(
+    //       conn
+    //         .connection
+    //         .savepoint_with_name(name.clone())
+    //         .map_err(NodeRusqliteError::from)?,
+    //     )
+    //   })?,
+    //   name: Some(name),
+    //   commited: self.commited,
+    // })
+    todo!("")
   }
 
   #[napi(getter)]
