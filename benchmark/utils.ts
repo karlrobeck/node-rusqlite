@@ -22,7 +22,8 @@ export interface MemorySnapshot {
 export function captureMemory(): MemorySnapshot {
   try {
     // Use Node.js memory usage
-    const mem = (globalThis as any).process?.memoryUsage?.() || { heapUsed: 0, external: 0 };
+    const mem = (globalThis as any).process?.memoryUsage?.() ||
+      { heapUsed: 0, external: 0 };
     return {
       heapUsed: mem.heapUsed,
       external: mem.external,
@@ -38,7 +39,7 @@ export function captureMemory(): MemorySnapshot {
  */
 export function memoryDelta(
   before: MemorySnapshot,
-  after: MemorySnapshot
+  after: MemorySnapshot,
 ): number {
   return (after.heapUsed - before.heapUsed) / 1024 / 1024;
 }
@@ -51,7 +52,10 @@ export function getTempDbPath(name: string): string {
   if (!fs.existsSync(tmpDir)) {
     fs.mkdirSync(tmpDir, { recursive: true });
   }
-  return path.join(tmpDir, `${name}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}.db`);
+  return path.join(
+    tmpDir,
+    `${name}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}.db`,
+  );
 }
 
 /**
@@ -143,20 +147,18 @@ export function formatResults(results: BenchmarkResult[]): void {
     "node:sqlite",
     "node-rusqlite",
     "Ratio",
-    "Memory Δ"
+    "Memory Δ",
   );
   console.log("-".repeat(100));
 
   for (const result of sorted) {
-    const ratiomsg =
-      result.ratio > 1
-        ? `${result.ratio.toFixed(2)}x slower`
-        : `${(1 / result.ratio).toFixed(2)}x faster`;
+    const ratiomsg = result.ratio > 1
+      ? `${result.ratio.toFixed(2)}x slower`
+      : `${(1 / result.ratio).toFixed(2)}x faster`;
 
-    const memMsg =
-      result.memoryDelta > 0
-        ? `+${result.memoryDelta.toFixed(2)}MB`
-        : `${result.memoryDelta.toFixed(2)}MB`;
+    const memMsg = result.memoryDelta > 0
+      ? `+${result.memoryDelta.toFixed(2)}MB`
+      : `${result.memoryDelta.toFixed(2)}MB`;
 
     console.log(
       "%-50s | %13.2f ms | %13.2f ms | %-10s | %12s |",
@@ -164,25 +166,25 @@ export function formatResults(results: BenchmarkResult[]): void {
       result.nodeResSqlite.time,
       result.nodeSqlite.time,
       ratiomsg,
-      memMsg
+      memMsg,
     );
   }
 
   console.log("=".repeat(100) + "\n");
 
   // Summary
-  const avgRatio =
-    results.reduce((sum, r) => sum + r.ratio, 0) / results.length;
+  const avgRatio = results.reduce((sum, r) => sum + r.ratio, 0) /
+    results.length;
   console.log(`Average ratio: ${avgRatio.toFixed(2)}x`);
   console.log(
-    `Faster: ${results.filter((r) => r.ratio < 1).length} / ${results.length}`
+    `Faster: ${results.filter((r) => r.ratio < 1).length} / ${results.length}`,
   );
   console.log(
-    `Slower: ${results.filter((r) => r.ratio > 1).length} / ${results.length}`
+    `Slower: ${results.filter((r) => r.ratio > 1).length} / ${results.length}`,
   );
 
-  const avgMemDelta =
-    results.reduce((sum, r) => sum + r.memoryDelta, 0) / results.length;
+  const avgMemDelta = results.reduce((sum, r) => sum + r.memoryDelta, 0) /
+    results.length;
   console.log(`Average memory delta: ${avgMemDelta.toFixed(2)}MB\n`);
 }
 

@@ -5,7 +5,7 @@
 
 import { assertEquals } from "@std/assert";
 import { Connection } from "../bindings/binding.js";
-import { getTempDbPath, cleanupDb } from "./utils.ts";
+import { cleanupDb, getTempDbPath } from "./utils.ts";
 
 let dbPath = "";
 let conn: Connection;
@@ -21,7 +21,7 @@ function setup() {
       email TEXT,
       age INTEGER
     )`,
-    []
+    [],
   );
 }
 
@@ -40,7 +40,7 @@ Deno.bench({
         for (let i = 1; i <= BULK_SIZE; i++) {
           tx.execute(
             "INSERT INTO large_dataset (id, name, email, age) VALUES (?, ?, ?, ?)",
-            [i, `User${i}`, `user${i}@example.com`, 20 + (i % 50)]
+            [i, `User${i}`, `user${i}@example.com`, 20 + (i % 50)],
           );
         }
       });
@@ -60,7 +60,7 @@ Deno.bench({
         for (let i = 1; i <= BULK_SIZE; i++) {
           tx.execute(
             "INSERT INTO large_dataset (id, name, email, age) VALUES (?, ?, ?, ?)",
-            [i, `User${i}`, `user${i}@example.com`, 20 + (i % 50)]
+            [i, `User${i}`, `user${i}@example.com`, 20 + (i % 50)],
           );
         }
       });
@@ -91,7 +91,7 @@ Deno.bench({
         for (let i = 1; i <= BULK_SIZE; i++) {
           tx.execute(
             "INSERT INTO large_dataset (id, name, email, age) VALUES (?, ?, ?, ?)",
-            [i, `User${i}`, `user${i}@example.com`, 20 + (i % 50)]
+            [i, `User${i}`, `user${i}@example.com`, 20 + (i % 50)],
           );
         }
       });
@@ -120,7 +120,7 @@ Deno.bench({
         for (let i = 1; i <= 10000; i++) {
           tx.execute(
             "INSERT INTO large_dataset (id, name, email, age) VALUES (?, ?, ?, ?)",
-            [i, `User${i}`, `user${i}@example.com`, 20 + (i % 50)]
+            [i, `User${i}`, `user${i}@example.com`, 20 + (i % 50)],
           );
         }
       });
@@ -128,7 +128,7 @@ Deno.bench({
       for (let i = 0; i < 1000; i++) {
         const result = conn.queryRow(
           "SELECT COUNT(*) as count, SUM(age) as total_age, AVG(age) as avg_age FROM large_dataset WHERE age > ?",
-          [25]
+          [25],
         );
         assertEquals(result !== null && result !== undefined, true);
       }

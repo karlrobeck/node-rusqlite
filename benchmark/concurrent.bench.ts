@@ -4,7 +4,7 @@
  */
 
 import { Connection } from "../bindings/binding.js";
-import { getTempDbPath, cleanupDb } from "./utils.ts";
+import { cleanupDb, getTempDbPath } from "./utils.ts";
 
 let dbPath = "";
 let conn: Connection;
@@ -19,13 +19,13 @@ function setup() {
       value TEXT,
       counter INTEGER
     )`,
-    []
+    [],
   );
 
   for (let i = 1; i <= 5000; i++) {
     conn.execute(
       "INSERT INTO concurrent_test (thread, value, counter) VALUES (?, ?, ?)",
-      [0, `initial_${i}`, i]
+      [0, `initial_${i}`, i],
     );
   }
 }
@@ -51,7 +51,7 @@ Deno.bench({
             value TEXT,
             counter INTEGER
           )`,
-          []
+          [],
         );
         connections.push(c);
       }
@@ -60,7 +60,7 @@ Deno.bench({
         for (let j = 0; j < 1000; j++) {
           connections[i].execute(
             "INSERT INTO concurrent_test (thread, value, counter) VALUES (?, ?, ?)",
-            [i, `t${i}_d${j}`, j]
+            [i, `t${i}_d${j}`, j],
           );
         }
       }
@@ -85,7 +85,7 @@ Deno.bench({
         for (let i = 1; i <= 2000; i++) {
           conn.queryRow(
             "SELECT * FROM concurrent_test WHERE thread = ? AND counter = ?",
-            [thread, (i % 5000) || 1]
+            [thread, (i % 5000) || 1],
           );
         }
       }
@@ -106,7 +106,7 @@ Deno.bench({
           if (i % 2 === 0) {
             tx.execute(
               "INSERT INTO concurrent_test (thread, value, counter) VALUES (?, ?, ?)",
-              [5, `interleaved_${i}`, i]
+              [5, `interleaved_${i}`, i],
             );
           } else {
             tx.queryRow("SELECT * FROM concurrent_test WHERE id = ?", [
@@ -131,7 +131,7 @@ Deno.bench({
         for (let i = 0; i < 5000; i++) {
           tx.execute(
             "INSERT INTO concurrent_test (thread, value, counter) VALUES (?, ?, ?)",
-            [6, `heavy_${i}`, i]
+            [6, `heavy_${i}`, i],
           );
         }
       });

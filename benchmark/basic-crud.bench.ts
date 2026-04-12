@@ -5,7 +5,7 @@
 
 import { assertEquals } from "@std/assert";
 import { Connection } from "../bindings/binding.js";
-import { getTempDbPath, cleanupDb } from "./utils.ts";
+import { cleanupDb, getTempDbPath } from "./utils.ts";
 
 let dbPath = "";
 let conn: Connection;
@@ -20,7 +20,7 @@ function setup() {
       email TEXT UNIQUE,
       age INTEGER
     )`,
-    []
+    [],
   );
 }
 
@@ -38,7 +38,7 @@ Deno.bench({
       for (let i = 0; i < 10000; i++) {
         conn.execute(
           "INSERT INTO users (name, email, age) VALUES (?, ?, ?)",
-          [`User${i}`, `user${i}@example.com`, 25]
+          [`User${i}`, `user${i}@example.com`, 25],
         );
       }
     } finally {
@@ -56,7 +56,7 @@ Deno.bench({
       for (let i = 0; i < 100; i++) {
         conn.execute(
           "INSERT INTO users (name, email, age) VALUES (?, ?, ?)",
-          [`User${i}`, `user${i}@example.com`, 25]
+          [`User${i}`, `user${i}@example.com`, 25],
         );
       }
       for (let i = 1; i <= 10000; i++) {
@@ -77,11 +77,14 @@ Deno.bench({
       for (let i = 1; i <= 500; i++) {
         conn.execute(
           "INSERT INTO users (name, email, age) VALUES (?, ?, ?)",
-          [`User${i}`, `user${i}@example.com`, 25]
+          [`User${i}`, `user${i}@example.com`, 25],
         );
       }
       for (let i = 1; i <= 5000; i++) {
-        conn.execute("UPDATE users SET age = ? WHERE id = ?", [26, (i % 500) + 1]);
+        conn.execute("UPDATE users SET age = ? WHERE id = ?", [
+          26,
+          (i % 500) + 1,
+        ]);
       }
     } finally {
       teardown();
@@ -98,7 +101,7 @@ Deno.bench({
       for (let i = 1; i <= 5000; i++) {
         conn.execute(
           "INSERT INTO users (name, email, age) VALUES (?, ?, ?)",
-          [`User${i}`, `user${i}@example.com`, 25]
+          [`User${i}`, `user${i}@example.com`, 25],
         );
       }
       for (let i = 5000; i >= 1; i--) {
@@ -119,7 +122,7 @@ Deno.bench({
       for (let i = 1; i <= 1000; i++) {
         conn.execute(
           "INSERT INTO users (name, email, age) VALUES (?, ?, ?)",
-          [`User${i}`, `user${i}@example.com`, 20 + (i % 50)]
+          [`User${i}`, `user${i}@example.com`, 20 + (i % 50)],
         );
       }
       conn.prepare("SELECT * FROM users", (stmt) => {

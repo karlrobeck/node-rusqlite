@@ -4,7 +4,7 @@
  */
 
 import { Connection } from "../bindings/binding.js";
-import { getTempDbPath, cleanupDb } from "./utils.ts";
+import { cleanupDb, getTempDbPath } from "./utils.ts";
 
 let dbPathFile = "";
 let connFile: Connection;
@@ -19,7 +19,7 @@ function setupFile() {
       value TEXT,
       number INTEGER
     )`,
-    []
+    [],
   );
 }
 
@@ -31,7 +31,7 @@ function setupMem() {
       value TEXT,
       number INTEGER
     )`,
-    []
+    [],
   );
 }
 
@@ -49,7 +49,7 @@ Deno.bench({
       for (let i = 0; i < 10000; i++) {
         connFile.execute(
           "INSERT INTO benchmark_data (value, number) VALUES (?, ?)",
-          [`data${i}`, i]
+          [`data${i}`, i],
         );
       }
     } finally {
@@ -67,7 +67,7 @@ Deno.bench({
       for (let i = 0; i < 10000; i++) {
         connMem.execute(
           "INSERT INTO benchmark_data (value, number) VALUES (?, ?)",
-          [`data${i}`, i]
+          [`data${i}`, i],
         );
       }
     } finally {
@@ -85,7 +85,7 @@ Deno.bench({
       for (let i = 0; i < 1000; i++) {
         connFile.execute(
           "INSERT INTO benchmark_data (value, number) VALUES (?, ?)",
-          [`data${i}`, i]
+          [`data${i}`, i],
         );
       }
       for (let i = 0; i < 10000; i++) {
@@ -108,7 +108,7 @@ Deno.bench({
       for (let i = 0; i < 1000; i++) {
         connMem.execute(
           "INSERT INTO benchmark_data (value, number) VALUES (?, ?)",
-          [`data${i}`, i]
+          [`data${i}`, i],
         );
       }
       for (let i = 0; i < 10000; i++) {
@@ -132,7 +132,7 @@ Deno.bench({
         for (let i = 1; i <= 5000; i++) {
           tx.execute(
             "INSERT INTO benchmark_data (value, number) VALUES (?, ?)",
-            [`data${i}`, i]
+            [`data${i}`, i],
           );
         }
       });
@@ -161,7 +161,7 @@ Deno.bench({
         for (let i = 1; i <= 5000; i++) {
           tx.execute(
             "INSERT INTO benchmark_data (value, number) VALUES (?, ?)",
-            [`data${i}`, i]
+            [`data${i}`, i],
           );
         }
       });

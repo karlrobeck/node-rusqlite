@@ -4,7 +4,7 @@
  */
 
 import { Connection } from "../bindings/binding.js";
-import { getTempDbPath, cleanupDb } from "./utils.ts";
+import { cleanupDb, getTempDbPath } from "./utils.ts";
 
 let dbPath = "";
 let conn: Connection;
@@ -19,12 +19,12 @@ function setup() {
       price REAL,
       stock INTEGER
     )`,
-    []
+    [],
   );
   for (let i = 1; i <= 1000; i++) {
     conn.execute(
       "INSERT INTO products (name, price, stock) VALUES (?, ?, ?)",
-      [`Product${i}`, Math.random() * 100, Math.floor(Math.random() * 1000)]
+      [`Product${i}`, Math.random() * 100, Math.floor(Math.random() * 1000)],
     );
   }
 }
@@ -75,7 +75,7 @@ Deno.bench({
       for (let i = 1; i <= 5000; i++) {
         conn.queryRow(
           "SELECT * FROM products WHERE id = ? AND price > ? AND stock < ?",
-          [(i % 500) || 1, 25.0, 750]
+          [(i % 500) || 1, 25.0, 750],
         );
       }
     } finally {

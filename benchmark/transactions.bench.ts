@@ -4,7 +4,7 @@
  */
 
 import { Connection, TransactionBehavior } from "../bindings/binding.js";
-import { getTempDbPath, cleanupDb } from "./utils.ts";
+import { cleanupDb, getTempDbPath } from "./utils.ts";
 
 let dbPath = "";
 let conn: Connection;
@@ -18,7 +18,7 @@ function setup() {
       value INTEGER,
       data TEXT
     )`,
-    []
+    [],
   );
 }
 

@@ -1,16 +1,19 @@
 # node-rusqlite Benchmarks
 
-Comprehensive performance benchmarks for node-rusqlite using Deno's native bench framework.
+Comprehensive performance benchmarks for node-rusqlite using Deno's native bench
+framework.
 
 ## Overview
 
-This benchmark suite measures the performance of node-rusqlite (napi-rs Rust binding to rusqlite) across various database operations and scenarios.
+This benchmark suite measures the performance of node-rusqlite (napi-rs Rust
+binding to rusqlite) across various database operations and scenarios.
 
 **Benchmark Categories:**
 
 1. **Basic CRUD** - INSERT, SELECT, UPDATE, DELETE operations
 2. **Prepared Statements** - Inline SQL vs prepared statement reuse
-3. **Transactions** - Different transaction behaviors (DEFERRED, IMMEDIATE, EXCLUSIVE)
+3. **Transactions** - Different transaction behaviors (DEFERRED, IMMEDIATE,
+   EXCLUSIVE)
 4. **Bulk Operations** - Large dataset handling (50K+ rows)
 5. **Connection Modes** - File-based vs in-memory database performance
 6. **Concurrent Operations** - Multiple connections and access patterns
@@ -18,16 +21,19 @@ This benchmark suite measures the performance of node-rusqlite (napi-rs Rust bin
 ## Running Benchmarks
 
 ### Run all benchmarks
+
 ```bash
 deno bench benchmark/*.bench.ts
 ```
 
 Or using the npm task:
+
 ```bash
 deno task bench
 ```
 
 ### Run specific benchmark category
+
 ```bash
 # CRUD operations
 deno task bench:crud
@@ -49,6 +55,7 @@ deno task bench:concurrent
 ```
 
 ### Run individual benchmark file
+
 ```bash
 deno bench benchmark/basic-crud.bench.ts --filter "INSERT"
 ```
@@ -56,6 +63,7 @@ deno bench benchmark/basic-crud.bench.ts --filter "INSERT"
 ## Understanding Results
 
 Each benchmark displays:
+
 - **name** - Operation being tested
 - **baseline** - First test in each group (marked as baseline)
 - **ops/sec** - Operations per second
@@ -63,6 +71,7 @@ Each benchmark displays:
 - **min/max** - Minimum and maximum times
 
 Example output:
+
 ```
 bench basic-crud ... measured 5 samples
   INSERT single row (10K)                 time    149.87 ms  rate   66.72 ops/sec
@@ -77,6 +86,7 @@ bench basic-crud ... measured 5 samples
 ### Basic CRUD (basic-crud.bench.ts)
 
 Tests fundamental database operations:
+
 - **INSERT single row** - 10K individual INSERT statements
 - **SELECT by ID** - 10K queries using WHERE id = ?
 - **UPDATE** - 5K update statements
@@ -86,6 +96,7 @@ Tests fundamental database operations:
 ### Prepared Statements (prepared-statements.bench.ts)
 
 Compares prepared statement optimization:
+
 - **Inline SQL** - Fresh SQL parsing for each query
 - **Prepared statement reuse** - Compiled statement reused
 - **Multiple parameters** - Queries with 3+ parameter bindings
@@ -94,6 +105,7 @@ Compares prepared statement optimization:
 ### Transactions (transactions.bench.ts)
 
 Tests transaction performance and behaviors:
+
 - **No transaction** - Batch of 10K INSERTs without transaction (slow)
 - **DEFERRED** - Default transaction behavior (best for batches)
 - **IMMEDIATE** - Acquires lock immediately
@@ -103,6 +115,7 @@ Tests transaction performance and behaviors:
 ### Bulk Operations (bulk-operations.bench.ts)
 
 Tests handling of large datasets:
+
 - **Bulk INSERT** - 50K rows in a single transaction
 - **Bulk SELECT and iterate** - Read and iterate 50K rows
 - **Bulk UPDATE** - Update 50K rows
@@ -111,6 +124,7 @@ Tests handling of large datasets:
 ### Connection Modes (connection-modes.bench.ts)
 
 Compares file-based vs in-memory databases:
+
 - **File-based INSERT** - Writes to disk (slower)
 - **In-memory INSERT** - RAM only (faster)
 - **File-based SELECT** - Disk reads (slower)
@@ -120,6 +134,7 @@ Compares file-based vs in-memory databases:
 ### Concurrent Operations (concurrent.bench.ts)
 
 Tests multiple connections and mixed workloads:
+
 - **Multiple connections** - 5 connections doing 1K ops each
 - **Concurrent reads** - 5 threads reading from same database
 - **Interleaved reads/writes** - 50/50 mix of reads and writes
@@ -130,6 +145,7 @@ Tests multiple connections and mixed workloads:
 Based on these benchmarks, here are optimization patterns:
 
 ### Use transactions for bulk operations
+
 ```typescript
 conn.transaction((tx) => {
   for (let i = 0; i < 50000; i++) {
@@ -137,9 +153,11 @@ conn.transaction((tx) => {
   }
 });
 ```
+
 **Impact**: ~50-100x faster than individual statements
 
 ### Reuse prepared statements
+
 ```typescript
 conn.prepare("SELECT * FROM table WHERE id = ?", (stmt) => {
   for (let i = 0; i < 10000; i++) {
@@ -147,15 +165,18 @@ conn.prepare("SELECT * FROM table WHERE id = ?", (stmt) => {
   }
 });
 ```
+
 **Impact**: ~10-20% faster for repeated queries
 
 ### Prefer in-memory databases for temporary data
+
 ```typescript
 const temp = Connection.openInMemory();
 // ~50-100% faster than file-based
 ```
 
 ### Use DEFERRED transactions for reads
+
 ```typescript
 conn.transaction((tx) => {
   // Reads only, no lock until needed
@@ -163,6 +184,7 @@ conn.transaction((tx) => {
 ```
 
 ### Use IMMEDIATE for mixed workloads
+
 ```typescript
 conn.transactionWithBehavior("Immediate", (tx) => {
   // Reads and writes together
@@ -177,7 +199,7 @@ Create a new `.bench.ts` file in the `benchmark/` directory:
 
 ```typescript
 import { Connection } from "../bindings/binding.js";
-import { getTempDbPath, cleanupDb } from "./utils.ts";
+import { cleanupDb, getTempDbPath } from "./utils.ts";
 
 let dbPath = "";
 let conn: Connection;
@@ -210,6 +232,7 @@ Deno.bench({
 ### Utility functions
 
 Available from `./utils.ts`:
+
 - `getTempDbPath(name)` - Create temporary database file
 - `cleanupDb(path)` - Remove database file
 - `Timer` - High-resolution timer class
