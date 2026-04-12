@@ -16,8 +16,9 @@ use crate::{
   utils::parse_rows,
 };
 
+/// SQLite database configuration switches exposed to JavaScript.
 #[napi]
-pub enum RusqliteDbConfig {
+pub enum DbConfig {
   SqliteDbconfigEnableFkey = 1_002,
   SqliteDbconfigEnableTrigger = 1_003,
   SqliteDbconfigEnableFts3Tokenizer = 1_004,
@@ -40,39 +41,34 @@ pub enum RusqliteDbConfig {
   SqliteDbconfigEnableComments = 1_022,
 }
 
-impl From<RusqliteDbConfig> for rusqlite::config::DbConfig {
-  fn from(value: RusqliteDbConfig) -> Self {
+impl From<DbConfig> for rusqlite::config::DbConfig {
+  fn from(value: DbConfig) -> Self {
     match value {
-      RusqliteDbConfig::SqliteDbconfigEnableFkey => Self::SQLITE_DBCONFIG_ENABLE_FKEY,
-      RusqliteDbConfig::SqliteDbconfigEnableTrigger => Self::SQLITE_DBCONFIG_ENABLE_TRIGGER,
-      RusqliteDbConfig::SqliteDbconfigEnableFts3Tokenizer => {
-        Self::SQLITE_DBCONFIG_ENABLE_FTS3_TOKENIZER
-      }
-      RusqliteDbConfig::SqliteDbconfigNoCkptOnClose => Self::SQLITE_DBCONFIG_NO_CKPT_ON_CLOSE,
-      RusqliteDbConfig::SqliteDbconfigEnableQpsg => Self::SQLITE_DBCONFIG_ENABLE_QPSG,
-      RusqliteDbConfig::SqliteDbconfigTriggerEqp => Self::SQLITE_DBCONFIG_TRIGGER_EQP,
-      RusqliteDbConfig::SqliteDbconfigResetDatabase => Self::SQLITE_DBCONFIG_RESET_DATABASE,
-      RusqliteDbConfig::SqliteDbconfigDefensive => Self::SQLITE_DBCONFIG_DEFENSIVE,
-      RusqliteDbConfig::SqliteDbconfigWritableSchema => Self::SQLITE_DBCONFIG_WRITABLE_SCHEMA,
-      RusqliteDbConfig::SqliteDbconfigLegacyAlterTable => Self::SQLITE_DBCONFIG_LEGACY_ALTER_TABLE,
-      RusqliteDbConfig::SqliteDbconfigDqsDml => Self::SQLITE_DBCONFIG_DQS_DML,
-      RusqliteDbConfig::SqliteDbconfigDqsDdl => Self::SQLITE_DBCONFIG_DQS_DDL,
-      RusqliteDbConfig::SqliteDbconfigEnableView => Self::SQLITE_DBCONFIG_ENABLE_VIEW,
-      RusqliteDbConfig::SqliteDbconfigLegacyFileFormat => Self::SQLITE_DBCONFIG_LEGACY_FILE_FORMAT,
-      RusqliteDbConfig::SqliteDbconfigTrustedSchema => Self::SQLITE_DBCONFIG_TRUSTED_SCHEMA,
-      RusqliteDbConfig::SqliteDbconfigStmtScanStatus => Self::SQLITE_DBCONFIG_STMT_SCANSTATUS,
-      RusqliteDbConfig::SqliteDbconfigReverseScanOrder => Self::SQLITE_DBCONFIG_REVERSE_SCANORDER,
-      RusqliteDbConfig::SqliteDbconfigEnableAttachCreate => {
-        Self::SQLITE_DBCONFIG_ENABLE_ATTACH_CREATE
-      }
-      RusqliteDbConfig::SqliteDbconfigEnableAttachWrite => {
-        Self::SQLITE_DBCONFIG_ENABLE_ATTACH_WRITE
-      }
-      RusqliteDbConfig::SqliteDbconfigEnableComments => Self::SQLITE_DBCONFIG_ENABLE_COMMENTS,
+      DbConfig::SqliteDbconfigEnableFkey => Self::SQLITE_DBCONFIG_ENABLE_FKEY,
+      DbConfig::SqliteDbconfigEnableTrigger => Self::SQLITE_DBCONFIG_ENABLE_TRIGGER,
+      DbConfig::SqliteDbconfigEnableFts3Tokenizer => Self::SQLITE_DBCONFIG_ENABLE_FTS3_TOKENIZER,
+      DbConfig::SqliteDbconfigNoCkptOnClose => Self::SQLITE_DBCONFIG_NO_CKPT_ON_CLOSE,
+      DbConfig::SqliteDbconfigEnableQpsg => Self::SQLITE_DBCONFIG_ENABLE_QPSG,
+      DbConfig::SqliteDbconfigTriggerEqp => Self::SQLITE_DBCONFIG_TRIGGER_EQP,
+      DbConfig::SqliteDbconfigResetDatabase => Self::SQLITE_DBCONFIG_RESET_DATABASE,
+      DbConfig::SqliteDbconfigDefensive => Self::SQLITE_DBCONFIG_DEFENSIVE,
+      DbConfig::SqliteDbconfigWritableSchema => Self::SQLITE_DBCONFIG_WRITABLE_SCHEMA,
+      DbConfig::SqliteDbconfigLegacyAlterTable => Self::SQLITE_DBCONFIG_LEGACY_ALTER_TABLE,
+      DbConfig::SqliteDbconfigDqsDml => Self::SQLITE_DBCONFIG_DQS_DML,
+      DbConfig::SqliteDbconfigDqsDdl => Self::SQLITE_DBCONFIG_DQS_DDL,
+      DbConfig::SqliteDbconfigEnableView => Self::SQLITE_DBCONFIG_ENABLE_VIEW,
+      DbConfig::SqliteDbconfigLegacyFileFormat => Self::SQLITE_DBCONFIG_LEGACY_FILE_FORMAT,
+      DbConfig::SqliteDbconfigTrustedSchema => Self::SQLITE_DBCONFIG_TRUSTED_SCHEMA,
+      DbConfig::SqliteDbconfigStmtScanStatus => Self::SQLITE_DBCONFIG_STMT_SCANSTATUS,
+      DbConfig::SqliteDbconfigReverseScanOrder => Self::SQLITE_DBCONFIG_REVERSE_SCANORDER,
+      DbConfig::SqliteDbconfigEnableAttachCreate => Self::SQLITE_DBCONFIG_ENABLE_ATTACH_CREATE,
+      DbConfig::SqliteDbconfigEnableAttachWrite => Self::SQLITE_DBCONFIG_ENABLE_ATTACH_WRITE,
+      DbConfig::SqliteDbconfigEnableComments => Self::SQLITE_DBCONFIG_ENABLE_COMMENTS,
     }
   }
 }
 
+/// A live SQLite connection exposed to JavaScript.
 #[napi(custom_finalize)]
 pub struct Connection {
   pub(crate) connection: rusqlite::Connection,
@@ -86,23 +82,27 @@ impl Deref for Connection {
   }
 }
 
+/// A borrowed SQLite connection used inside transaction and savepoint callbacks.
 #[napi]
 pub struct ScopedConnection<'a> {
   pub(crate) connection: &'a rusqlite::Connection,
 }
 
+/// Progress information returned by long-running SQLite operations.
 #[napi(object)]
 pub struct Progress {
   pub remaining: i32,
   pub page_count: i32,
 }
 
+/// Options for opening a SQLite connection.
 #[napi(object)]
 pub struct ConnectionOptions {
   pub flags: Option<i32>,
   pub vfs: Option<String>,
 }
 
+/// Flags that control how a SQLite database is opened.
 #[napi]
 pub enum OpenFlags {
   SqliteOpenReadonly = 0x00000001,      /* Ok for sqlite3_open_v2() */
@@ -129,6 +129,7 @@ pub enum OpenFlags {
   SqliteOpenExrescode = 0x02000000,     /* Extended result codes */
 }
 
+/// Handle that can be used to interrupt a running SQLite operation.
 #[napi]
 pub struct InterruptHandle {
   pub(crate) handle: rusqlite::InterruptHandle,
@@ -136,6 +137,7 @@ pub struct InterruptHandle {
 
 #[napi]
 impl InterruptHandle {
+  /// Interrupts the associated SQLite connection.
   #[napi]
   pub fn interrupt(&self) {
     self.handle.interrupt();
@@ -144,6 +146,12 @@ impl InterruptHandle {
 
 #[napi]
 impl ScopedConnection<'_> {
+  /// Returns whether a column exists in the given table.
+  ///
+  /// @param dbName - The database name, or `null` to use the main database.
+  /// @param tableName - The table name to inspect.
+  /// @param columnName - The column name to look for.
+  /// @returns `true` when the column exists, otherwise `false`.
   #[napi]
   pub fn column_exists(
     &self,
@@ -163,6 +171,11 @@ impl ScopedConnection<'_> {
     Ok(exists.map_err(NodeRusqliteError::from)?)
   }
 
+  /// Returns whether a table exists in the given database.
+  ///
+  /// @param dbName - The database name, or `null` to use the main database.
+  /// @param tableName - The table name to look for.
+  /// @returns `true` when the table exists, otherwise `false`.
   #[napi]
   pub fn table_exists(&self, db_name: Option<String>, table_name: String) -> napi::Result<bool> {
     let exists = match db_name {
@@ -173,6 +186,12 @@ impl ScopedConnection<'_> {
     Ok(exists.map_err(NodeRusqliteError::from)?)
   }
 
+  /// Returns detailed metadata for a column in a table.
+  ///
+  /// @param dbName - The database name, or `null` to use the main database.
+  /// @param tableName - The table name to inspect.
+  /// @param columnName - The column name to inspect.
+  /// @returns Column metadata for the requested column.
   #[napi]
   pub fn column_metadata(
     &self,
@@ -200,8 +219,11 @@ impl ScopedConnection<'_> {
     })
   }
 
+  /// Reads a SQLite database configuration flag.
+  ///
+  /// @param config - The configuration flag to query.
   #[napi]
-  pub fn db_config(&self, config: RusqliteDbConfig) -> napi::Result<()> {
+  pub fn db_config(&self, config: DbConfig) -> napi::Result<()> {
     self
       .connection
       .db_config(config.into())
@@ -209,8 +231,12 @@ impl ScopedConnection<'_> {
     Ok(())
   }
 
+  /// Sets a SQLite database configuration flag.
+  ///
+  /// @param config - The configuration flag to change.
+  /// @param on - Whether the flag should be enabled.
   #[napi]
-  pub fn set_db_config(&self, config: RusqliteDbConfig, on: bool) -> napi::Result<()> {
+  pub fn set_db_config(&self, config: DbConfig, on: bool) -> napi::Result<()> {
     self
       .connection
       .set_db_config(config.into(), on)
@@ -218,6 +244,11 @@ impl ScopedConnection<'_> {
     Ok(())
   }
 
+  /// Reads a PRAGMA value and returns the parsed result.
+  ///
+  /// @param schemaName - The schema name, or `null` to use the default schema.
+  /// @param pragmaName - The PRAGMA name to query.
+  /// @returns The PRAGMA result as a JavaScript value.
   #[napi(ts_return_type = "unknown")]
   pub fn pragma_query_value(
     &self,
@@ -240,6 +271,11 @@ impl ScopedConnection<'_> {
     env.to_js_value(&value)
   }
 
+  /// Runs a PRAGMA query and returns the row as a plain object.
+  ///
+  /// @param schemaName - The schema name, or `null` to use the default schema.
+  /// @param pragmaName - The PRAGMA name to query.
+  /// @returns The PRAGMA row as a JavaScript object.
   #[napi(ts_return_type = "Record<string,unknown>")]
   pub fn pragma_query(
     &self,
@@ -266,6 +302,12 @@ impl ScopedConnection<'_> {
     env.to_js_value(&value)
   }
 
+  /// Runs a PRAGMA statement and invokes a callback with the resulting row.
+  ///
+  /// @param schemaName - The schema name, or `null` to use the default schema.
+  /// @param pragmaName - The PRAGMA name to execute.
+  /// @param pragmaValue - The PRAGMA value to send.
+  /// @param callback - Called with the resulting PRAGMA row.
   #[napi]
   pub fn pragma(
     &self,
@@ -303,6 +345,11 @@ impl ScopedConnection<'_> {
     Ok(())
   }
 
+  /// Updates a PRAGMA value without returning the resulting row.
+  ///
+  /// @param schemaName - The schema name, or `null` to use the default schema.
+  /// @param pragmaName - The PRAGMA name to execute.
+  /// @param pragmaValue - The PRAGMA value to send.
   #[napi]
   pub fn pragma_update(
     &self,
@@ -328,6 +375,12 @@ impl ScopedConnection<'_> {
     Ok(())
   }
 
+  /// Updates a PRAGMA value and returns the resulting row as an object.
+  ///
+  /// @param schemaName - The schema name, or `null` to use the default schema.
+  /// @param pragmaName - The PRAGMA name to execute.
+  /// @param pragmaValue - The PRAGMA value to send.
+  /// @returns The resulting PRAGMA row as a JavaScript object.
   #[napi(ts_return_type = "Record<string,unknown>")]
   pub fn pragma_update_and_check(
     &self,
@@ -354,6 +407,9 @@ impl ScopedConnection<'_> {
     env.to_js_value(&value)
   }
 
+  /// Runs a transaction and commits on success or rolls back on error.
+  ///
+  /// @param callback - Called with a scoped connection inside the transaction.
   #[napi(ts_args_type = "callback: (transaction: ScopedConnection) => void")]
   pub fn savepoint(&mut self, callback: Function<ScopedConnection>) -> napi::Result<()> {
     let mut savepoint = self
@@ -375,6 +431,10 @@ impl ScopedConnection<'_> {
     Ok(())
   }
 
+  /// Runs a named savepoint and commits on success or rolls back on error.
+  ///
+  /// @param name - The savepoint name.
+  /// @param callback - Called with a scoped connection inside the savepoint.
   #[napi(ts_args_type = "name: string, callback: (transaction: ScopedConnection) => void")]
   pub fn savepoint_with_name(
     &mut self,
@@ -400,6 +460,10 @@ impl ScopedConnection<'_> {
     Ok(())
   }
 
+  /// Returns the current transaction state for the given database.
+  ///
+  /// @param dbName - The database name, or `null` to use the main database.
+  /// @returns The current transaction state.
   #[napi]
   pub fn transaction_state(&self, db_name: Option<String>) -> napi::Result<TransactionState> {
     let state = self
@@ -410,6 +474,9 @@ impl ScopedConnection<'_> {
     Ok(state.into())
   }
 
+  /// Executes a batch of SQL statements.
+  ///
+  /// @param sql - The SQL batch to execute.
   #[napi]
   pub fn execute_batch(&self, sql: String) -> napi::Result<()> {
     self
@@ -419,6 +486,11 @@ impl ScopedConnection<'_> {
     Ok(())
   }
 
+  /// Executes a single SQL statement with positional parameters.
+  ///
+  /// @param sql - The SQL statement to execute.
+  /// @param sqlParams - The ordered parameter values.
+  /// @returns The number of rows affected.
   #[napi]
   pub fn execute(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<i64> {
     let sql_params = env
@@ -433,11 +505,13 @@ impl ScopedConnection<'_> {
     Ok(result as i64)
   }
 
+  /// Returns the filesystem path for the connection, if any.
   #[napi]
   pub fn path(&self) -> napi::Result<String> {
     Ok(self.connection.path().unwrap_or("").to_string())
   }
 
+  /// Asks SQLite to release as much memory as possible.
   #[napi]
   pub fn release_memory(&self) -> napi::Result<()> {
     self
@@ -447,11 +521,17 @@ impl ScopedConnection<'_> {
     Ok(())
   }
 
+  /// Returns the most recent inserted row id.
   #[napi]
   pub fn last_insert_rowid(&self) -> napi::Result<i64> {
     Ok(self.connection.last_insert_rowid())
   }
 
+  /// Executes a query and returns the first row as an object.
+  ///
+  /// @param sql - The SQL query to execute.
+  /// @param sqlParams - The ordered parameter values.
+  /// @returns The first matching row as a JavaScript object.
   #[napi(ts_return_type = "Record<string,unknown>")]
   pub fn query_row(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<Unknown<'_>> {
     let sql_params = env
@@ -466,6 +546,11 @@ impl ScopedConnection<'_> {
     env.to_js_value(&row)
   }
 
+  /// Executes a query and returns a single row as an object.
+  ///
+  /// @param sql - The SQL query to execute.
+  /// @param params - The ordered parameter values.
+  /// @returns A single row as a JavaScript object.
   #[napi(ts_return_type = "Record<string,unknown>")]
   pub fn query_one(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<Unknown<'_>> {
     let sql_params = env
@@ -480,6 +565,10 @@ impl ScopedConnection<'_> {
     env.to_js_value(&row)
   }
 
+  /// Prepares a SQL statement and passes it to a callback.
+  ///
+  /// @param sql - The SQL statement to prepare.
+  /// @param callback - Called with the prepared statement.
   #[napi(ts_args_type = "sql:string, callback: (statement: ScopedStatement) => void")]
   pub fn prepare(&self, sql: String, callback: Function<ScopedStatement>) -> napi::Result<()> {
     let statement = self
@@ -497,6 +586,11 @@ impl ScopedConnection<'_> {
   #[napi(
     ts_args_type = "sql:string, flags: RusqlitePrepFlags, callback: (statement: ScopedStatement) => void"
   )]
+  /// Prepares a SQL statement with explicit SQLite prepare flags.
+  ///
+  /// @param sql - The SQL statement to prepare.
+  /// @param flags - The SQLite prepare flags to use.
+  /// @param callback - Called with the prepared statement.
   pub fn prepare_with_flags(
     &self,
     sql: String,
@@ -515,32 +609,38 @@ impl ScopedConnection<'_> {
     Ok(())
   }
 
+  /// Returns a handle that can interrupt long-running database work.
   #[napi]
   pub fn get_interrupt_handle(&self) -> napi::Result<InterruptHandle> {
     let handle = self.connection.get_interrupt_handle();
     Ok(InterruptHandle { handle })
   }
 
+  /// Returns the number of changes made by the most recent operation.
   #[napi]
   pub fn changes(&self) -> napi::Result<i64> {
     Ok(self.connection.changes() as i64)
   }
 
+  /// Returns the total number of changes made on the connection.
   #[napi]
   pub fn total_changes(&self) -> napi::Result<i64> {
     Ok(self.connection.total_changes() as i64)
   }
 
+  /// Returns whether the connection is currently in autocommit mode.
   #[napi]
   pub fn is_autocommit(&self) -> napi::Result<bool> {
     Ok(self.connection.is_autocommit())
   }
 
+  /// Returns whether the connection is busy.
   #[napi]
   pub fn is_busy(&self) -> napi::Result<bool> {
     Ok(self.connection.is_busy())
   }
 
+  /// Flushes the SQLite cache.
   #[napi]
   pub fn cache_flush(&self) -> napi::Result<()> {
     self
@@ -550,6 +650,9 @@ impl ScopedConnection<'_> {
     Ok(())
   }
 
+  /// Returns whether the specified database is read-only.
+  ///
+  /// @param dbName - The database name to inspect.
   #[napi]
   pub fn is_readonly(&self, db_name: String) -> napi::Result<bool> {
     Ok(
@@ -560,6 +663,9 @@ impl ScopedConnection<'_> {
     )
   }
 
+  /// Returns the name of the attached database at the given index.
+  ///
+  /// @param index - The zero-based database index.
   #[napi]
   pub fn db_name(&self, index: i32) -> napi::Result<String> {
     Ok(
@@ -570,6 +676,7 @@ impl ScopedConnection<'_> {
     )
   }
 
+  /// Returns whether the connection has been interrupted.
   #[napi]
   pub fn is_interrupted(&self) -> napi::Result<bool> {
     Ok(self.connection.is_interrupted())
@@ -578,6 +685,11 @@ impl ScopedConnection<'_> {
 
 #[napi]
 impl Connection {
+  /// Opens a SQLite database at the given path.
+  ///
+  /// @param path - The database file path.
+  /// @param options - Optional open flags and VFS settings.
+  /// @returns A new connection.
   #[napi(factory)]
   pub fn open(path: String, options: Option<ConnectionOptions>) -> napi::Result<Connection> {
     let connection = match options {
@@ -605,6 +717,10 @@ impl Connection {
     Ok(Self { connection })
   }
 
+  /// Opens an in-memory SQLite database.
+  ///
+  /// @param options - Optional open flags and VFS settings.
+  /// @returns A new in-memory connection.
   #[napi(factory)]
   pub fn open_in_memory(options: Option<ConnectionOptions>) -> napi::Result<Connection> {
     let connection = match options {
@@ -631,6 +747,12 @@ impl Connection {
     Ok(Self { connection })
   }
 
+  /// Returns whether a column exists in the given table.
+  ///
+  /// @param dbName - The database name, or `null` to use the main database.
+  /// @param tableName - The table name to inspect.
+  /// @param columnName - The column name to look for.
+  /// @returns `true` when the column exists, otherwise `false`.
   #[napi]
   pub fn column_exists(
     &self,
@@ -650,6 +772,11 @@ impl Connection {
     Ok(exists.map_err(NodeRusqliteError::from)?)
   }
 
+  /// Returns whether a table exists in the given database.
+  ///
+  /// @param dbName - The database name, or `null` to use the main database.
+  /// @param tableName - The table name to look for.
+  /// @returns `true` when the table exists, otherwise `false`.
   #[napi]
   pub fn table_exists(&self, db_name: Option<String>, table_name: String) -> napi::Result<bool> {
     let exists = match db_name {
@@ -660,6 +787,12 @@ impl Connection {
     Ok(exists.map_err(NodeRusqliteError::from)?)
   }
 
+  /// Returns detailed metadata for a column in a table.
+  ///
+  /// @param dbName - The database name, or `null` to use the main database.
+  /// @param tableName - The table name to inspect.
+  /// @param columnName - The column name to inspect.
+  /// @returns Column metadata for the requested column.
   #[napi]
   pub fn column_metadata(
     &self,
@@ -687,8 +820,11 @@ impl Connection {
     })
   }
 
+  /// Reads a SQLite database configuration flag.
+  ///
+  /// @param config - The configuration flag to query.
   #[napi]
-  pub fn db_config(&self, config: RusqliteDbConfig) -> napi::Result<()> {
+  pub fn db_config(&self, config: DbConfig) -> napi::Result<()> {
     self
       .connection
       .db_config(config.into())
@@ -696,8 +832,12 @@ impl Connection {
     Ok(())
   }
 
+  /// Sets a SQLite database configuration flag.
+  ///
+  /// @param config - The configuration flag to change.
+  /// @param on - Whether the flag should be enabled.
   #[napi]
-  pub fn set_db_config(&self, config: RusqliteDbConfig, on: bool) -> napi::Result<()> {
+  pub fn set_db_config(&self, config: DbConfig, on: bool) -> napi::Result<()> {
     self
       .connection
       .set_db_config(config.into(), on)
@@ -705,6 +845,11 @@ impl Connection {
     Ok(())
   }
 
+  /// Reads a PRAGMA value and returns the parsed result.
+  ///
+  /// @param schemaName - The schema name, or `null` to use the default schema.
+  /// @param pragmaName - The PRAGMA name to query.
+  /// @returns The PRAGMA result as a JavaScript value.
   #[napi(ts_return_type = "unknown")]
   pub fn pragma_query_value(
     &self,
@@ -727,6 +872,11 @@ impl Connection {
     env.to_js_value(&value)
   }
 
+  /// Runs a PRAGMA query and returns the row as a plain object.
+  ///
+  /// @param schemaName - The schema name, or `null` to use the default schema.
+  /// @param pragmaName - The PRAGMA name to query.
+  /// @returns The PRAGMA row as a JavaScript object.
   #[napi(ts_return_type = "Record<string,unknown>")]
   pub fn pragma_query(
     &self,
@@ -753,6 +903,12 @@ impl Connection {
     env.to_js_value(&value)
   }
 
+  /// Runs a PRAGMA statement and invokes a callback with the resulting row.
+  ///
+  /// @param schemaName - The schema name, or `null` to use the default schema.
+  /// @param pragmaName - The PRAGMA name to execute.
+  /// @param pragmaValue - The PRAGMA value to send.
+  /// @param callback - Called with the resulting PRAGMA row.
   #[napi]
   pub fn pragma(
     &self,
@@ -790,6 +946,11 @@ impl Connection {
     Ok(())
   }
 
+  /// Updates a PRAGMA value without returning the resulting row.
+  ///
+  /// @param schemaName - The schema name, or `null` to use the default schema.
+  /// @param pragmaName - The PRAGMA name to execute.
+  /// @param pragmaValue - The PRAGMA value to send.
   #[napi(ts_return_type = "Promise<void>")]
   pub fn pragma_update(
     &self,
@@ -815,6 +976,12 @@ impl Connection {
     Ok(())
   }
 
+  /// Updates a PRAGMA value and returns the resulting row as an object.
+  ///
+  /// @param schemaName - The schema name, or `null` to use the default schema.
+  /// @param pragmaName - The PRAGMA name to execute.
+  /// @param pragmaValue - The PRAGMA value to send.
+  /// @returns The resulting PRAGMA row as a JavaScript object.
   #[napi(ts_return_type = "Record<string,unknown>")]
   pub fn pragma_update_and_check(
     &self,
@@ -841,6 +1008,9 @@ impl Connection {
     env.to_js_value(&value)
   }
 
+  /// Runs a transaction and commits on success or rolls back on error.
+  ///
+  /// @param callback - Called with a scoped connection inside the transaction.
   #[napi(ts_args_type = "callback: (connection: ScopedConnection) => void")]
   pub fn transaction(&mut self, callback: Function<ScopedConnection>) -> napi::Result<()> {
     let transaction = self
@@ -862,6 +1032,10 @@ impl Connection {
     Ok(())
   }
 
+  /// Runs a transaction with the specified behavior.
+  ///
+  /// @param behavior - The transaction behavior to use.
+  /// @param callback - Called with a scoped connection inside the transaction.
   #[napi(
     ts_args_type = "behavior: TransactionBehavior, callback: (connection: ScopedConnection) => void"
   )]
@@ -889,6 +1063,9 @@ impl Connection {
     Ok(())
   }
 
+  /// Runs a transaction without extra checks and commits or rolls back based on the callback.
+  ///
+  /// @param callback - Called with a scoped connection inside the transaction.
   #[napi(ts_args_type = "callback: (connection: ScopedConnection) => void")]
   pub fn unchecked_transaction(
     &mut self,
@@ -913,6 +1090,9 @@ impl Connection {
     Ok(())
   }
 
+  /// Runs a savepoint and commits on success or rolls back on error.
+  ///
+  /// @param callback - Called with a scoped connection inside the savepoint.
   #[napi(ts_args_type = "callback: (transaction: ScopedConnection) => void")]
   pub fn savepoint(&mut self, callback: Function<ScopedConnection>) -> napi::Result<()> {
     let mut savepoint = self
@@ -934,6 +1114,10 @@ impl Connection {
     Ok(())
   }
 
+  /// Runs a named savepoint and commits on success or rolls back on error.
+  ///
+  /// @param name - The savepoint name.
+  /// @param callback - Called with a scoped connection inside the savepoint.
   #[napi(ts_args_type = "name: String, callback: (transaction: ScopedConnection) => void")]
   pub fn savepoint_with_name(
     &mut self,
@@ -959,6 +1143,10 @@ impl Connection {
     Ok(())
   }
 
+  /// Returns the current transaction state for the given database.
+  ///
+  /// @param dbName - The database name, or `null` to use the main database.
+  /// @returns The current transaction state.
   #[napi]
   pub fn transaction_state(&self, db_name: Option<String>) -> napi::Result<TransactionState> {
     let state = self
@@ -969,12 +1157,18 @@ impl Connection {
     Ok(state.into())
   }
 
+  /// Sets the default transaction behavior for future transactions.
+  ///
+  /// @param behavior - The transaction behavior to use.
   #[napi]
   pub fn set_transaction_behavior(&mut self, behavior: TransactionBehavior) -> napi::Result<()> {
     self.connection.set_transaction_behavior(behavior.into());
     Ok(())
   }
 
+  /// Executes a batch of SQL statements.
+  ///
+  /// @param sql - The SQL batch to execute.
   #[napi]
   pub fn execute_batch(&self, sql: String) -> napi::Result<()> {
     self
@@ -984,6 +1178,11 @@ impl Connection {
     Ok(())
   }
 
+  /// Executes a single SQL statement with positional parameters.
+  ///
+  /// @param sql - The SQL statement to execute.
+  /// @param sqlParams - The ordered parameter values.
+  /// @returns The number of rows affected.
   #[napi]
   pub fn execute(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<i64> {
     let sql_params = env
@@ -998,11 +1197,13 @@ impl Connection {
     Ok(result as i64)
   }
 
+  /// Returns the filesystem path for the connection, if any.
   #[napi]
   pub fn path(&self) -> napi::Result<String> {
     Ok(self.connection.path().unwrap_or("").to_string())
   }
 
+  /// Asks SQLite to release as much memory as possible.
   #[napi]
   pub fn release_memory(&self) -> napi::Result<()> {
     self
@@ -1012,11 +1213,17 @@ impl Connection {
     Ok(())
   }
 
+  /// Returns the most recent inserted row id.
   #[napi]
   pub fn last_insert_rowid(&self) -> napi::Result<i64> {
     Ok(self.connection.last_insert_rowid())
   }
 
+  /// Executes a query and returns the first row as an object.
+  ///
+  /// @param sql - The SQL query to execute.
+  /// @param sqlParams - The ordered parameter values.
+  /// @returns The first matching row as a JavaScript object.
   #[napi(ts_return_type = "Record<string,unknown>")]
   pub fn query_row(&self, env: Env, sql: String, sql_params: Array) -> napi::Result<Unknown<'_>> {
     let sql_params = env
@@ -1031,6 +1238,11 @@ impl Connection {
     env.to_js_value(&row)
   }
 
+  /// Executes a query and returns a single row as an object.
+  ///
+  /// @param sql - The SQL query to execute.
+  /// @param params - The ordered parameter values.
+  /// @returns A single row as a JavaScript object.
   #[napi(ts_return_type = "Record<string,unknown>")]
   pub fn query_one(&self, env: Env, sql: String, params: Array) -> napi::Result<Unknown<'_>> {
     let sql_params = env
@@ -1045,6 +1257,10 @@ impl Connection {
     env.to_js_value(&row)
   }
 
+  /// Prepares a SQL statement and passes it to a callback.
+  ///
+  /// @param sql - The SQL statement to prepare.
+  /// @param callback - Called with the prepared statement.
   #[napi(ts_args_type = "sql: String, callback: (statement: ScopedStatement) => void")]
   pub fn prepare(&self, sql: String, callback: Function<ScopedStatement>) -> napi::Result<()> {
     let statement = self
@@ -1059,6 +1275,11 @@ impl Connection {
     Ok(())
   }
 
+  /// Prepares a SQL statement with explicit SQLite prepare flags.
+  ///
+  /// @param sql - The SQL statement to prepare.
+  /// @param flags - The SQLite prepare flags to use.
+  /// @param callback - Called with the prepared statement.
   #[napi]
   pub fn prepare_with_flags(
     &self,
@@ -1078,32 +1299,38 @@ impl Connection {
     Ok(())
   }
 
+  /// Returns a handle that can interrupt long-running database work.
   #[napi]
   pub fn get_interrupt_handle(&self) -> napi::Result<InterruptHandle> {
     let handle = self.connection.get_interrupt_handle();
     Ok(InterruptHandle { handle })
   }
 
+  /// Returns the number of changes made by the most recent operation.
   #[napi]
   pub fn changes(&self) -> napi::Result<i64> {
     Ok(self.connection.changes() as i64)
   }
 
+  /// Returns the total number of changes made on the connection.
   #[napi]
   pub fn total_changes(&self) -> napi::Result<i64> {
     Ok(self.connection.total_changes() as i64)
   }
 
+  /// Returns whether the connection is currently in autocommit mode.
   #[napi]
   pub fn is_autocommit(&self) -> napi::Result<bool> {
     Ok(self.connection.is_autocommit())
   }
 
+  /// Returns whether the connection is busy.
   #[napi]
   pub fn is_busy(&self) -> napi::Result<bool> {
     Ok(self.connection.is_busy())
   }
 
+  /// Flushes the SQLite cache.
   #[napi]
   pub fn cache_flush(&self) -> napi::Result<()> {
     self
@@ -1113,6 +1340,9 @@ impl Connection {
     Ok(())
   }
 
+  /// Returns whether the specified database is read-only.
+  ///
+  /// @param dbName - The database name to inspect.
   #[napi]
   pub fn is_readonly(&self, db_name: String) -> napi::Result<bool> {
     Ok(
@@ -1123,6 +1353,9 @@ impl Connection {
     )
   }
 
+  /// Returns the name of the attached database at the given index.
+  ///
+  /// @param index - The zero-based database index.
   #[napi]
   pub fn db_name(&self, index: i32) -> napi::Result<String> {
     Ok(
@@ -1133,6 +1366,7 @@ impl Connection {
     )
   }
 
+  /// Returns whether the connection has been interrupted.
   #[napi]
   pub fn is_interrupted(&self) -> napi::Result<bool> {
     Ok(self.connection.is_interrupted())
@@ -1141,6 +1375,7 @@ impl Connection {
 
 #[napi]
 impl ObjectFinalize for Connection {
+  /// Closes the connection when the JavaScript object is finalized.
   fn finalize(self, _env: Env) -> napi::Result<()> {
     self
       .connection

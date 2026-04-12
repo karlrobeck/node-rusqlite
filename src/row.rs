@@ -6,15 +6,22 @@ use serde::{Deserialize, Serialize};
 
 use crate::errors::NodeRusqliteError;
 
+/// A borrowed SQLite value used while converting query results into JavaScript-friendly data.
 pub struct ValueRef<'a>(pub(crate) rusqlite::types::ValueRef<'a>);
 
+/// A single SQLite value converted into a JSON-serializable shape for JavaScript.
 #[derive(Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Value {
+  /// A SQL `NULL` value.
   Null,
+  /// A signed integer value.
   Integer(i64),
+  /// A floating-point value.
   Real(f64),
+  /// UTF-8 text.
   Text(String),
+  /// A binary blob.
   Blob(Vec<u8>),
 }
 
@@ -32,6 +39,7 @@ impl From<ValueRef<'_>> for Value {
   }
 }
 
+/// A collection of query result rows, stored in a JavaScript-friendly format.
 #[napi]
 pub struct Rows {
   pub(crate) rows: Vec<HashMap<String, Value>>,
@@ -39,6 +47,8 @@ pub struct Rows {
 
 #[napi]
 impl Rows {
+  /// Reads all rows from a SQLite cursor and stores them in memory.
+  /// @returns A `Rows` value containing every row as a map of column names to values.
   pub fn new(mut rows: rusqlite::Rows<'_>) -> Self {
     let mut value_rows = vec![];
 
@@ -61,11 +71,14 @@ impl Rows {
     Self { rows: value_rows }
   }
 
+  /// Converts the rows collection into a JavaScript value.
+  /// @returns A JavaScript representation of all rows.
   #[napi(js_name = "toJSON")]
   pub fn to_json(&mut self, env: Env) -> napi::Result<Unknown<'_>> {
     env.to_js_value(&self.rows)
   }
 
+  /// Creates an iterator that yields each row one at a time.
   #[napi]
   pub fn iterate(&mut self) -> RowIterator<'_> {
     RowIterator {
@@ -74,6 +87,9 @@ impl Rows {
     }
   }
 
+  /// Returns the row at the provided zero-based index.
+  /// @param index - The zero-based row index.
+  /// @returns The row at `index`, or `undefined` when the index is out of bounds.
   #[napi]
   pub fn get(&self, env: Env, index: i64) -> napi::Result<Option<Unknown<'_>>> {
     let row = self.rows.get(index as usize);
@@ -87,6 +103,7 @@ impl Rows {
   }
 }
 
+/// An iterator over a `Rows` collection for JavaScript consumers.
 #[napi(iterator)]
 pub struct RowIterator<'a> {
   next: usize,
@@ -99,6 +116,8 @@ impl<'a> ScopedGenerator<'a> for RowIterator<'a> {
   type Return = i64;
   type Yield = Unknown<'a>;
 
+  /// Returns the next row from the iterator.
+  /// @returns The next row as a JavaScript value, or `undefined` when iteration is complete.
   fn next(&mut self, env: &'a napi::Env, value: Option<Self::Next>) -> Option<Self::Yield> {
     let index = match value {
       Some(index) => index as usize,

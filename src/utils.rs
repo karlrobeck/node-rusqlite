@@ -4,6 +4,7 @@ use rusqlite::ToSql;
 
 use crate::row::{Value, ValueRef};
 
+/// Converts a JS-friendly [`Value`] into a SQLite parameter value.
 impl ToSql for Value {
   fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
     match self {
@@ -26,6 +27,10 @@ impl ToSql for Value {
   }
 }
 
+/// Parses a SQLite row into a map of column names to JS-friendly values.
+///
+/// Each column is read by name and converted into the shared [`Value`] enum used
+/// by the N-API layer.
 pub fn parse_rows(row: &rusqlite::Row) -> Result<HashMap<String, Value>, rusqlite::Error> {
   let mut map = HashMap::new();
 
