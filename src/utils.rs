@@ -26,7 +26,7 @@ impl ToSql for Value {
   }
 }
 
-pub fn row_to_unknown(row: &rusqlite::Row) -> Result<HashMap<String, Value>, rusqlite::Error> {
+pub fn parse_rows(row: &rusqlite::Row) -> Result<HashMap<String, Value>, rusqlite::Error> {
   let mut map = HashMap::new();
 
   for column in row.as_ref().column_names() {

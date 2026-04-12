@@ -13,7 +13,7 @@ use crate::{
   row::Value,
   statement::{RusqlitePrepFlags, ScopedStatement},
   transaction::{TransactionBehavior, TransactionState},
-  utils::row_to_unknown,
+  utils::parse_rows,
 };
 
 #[napi]
@@ -229,11 +229,11 @@ impl ScopedConnection<'_> {
       Some(schema_name) => {
         self
           .connection
-          .pragma_query_value(Some(&*schema_name), &pragma_name, row_to_unknown)
+          .pragma_query_value(Some(&*schema_name), &pragma_name, parse_rows)
       }
       None => self
         .connection
-        .pragma_query_value(None, &pragma_name, row_to_unknown),
+        .pragma_query_value(None, &pragma_name, parse_rows),
     }
     .map_err(NodeRusqliteError::from)?;
 
@@ -253,11 +253,11 @@ impl ScopedConnection<'_> {
       Some(schema_name) => self
         .connection
         .pragma_query(Some(&*schema_name), &pragma_name, |row| {
-          value = row_to_unknown(row)?;
+          value = parse_rows(row)?;
           Ok(())
         }),
       None => self.connection.pragma_query(None, &pragma_name, |row| {
-        value = row_to_unknown(row)?;
+        value = parse_rows(row)?;
         Ok(())
       }),
     }
@@ -285,14 +285,14 @@ impl ScopedConnection<'_> {
         self
           .connection
           .pragma(Some(&*schema_name), &pragma_name, &sql_value, |row| {
-            value = row_to_unknown(row)?;
+            value = parse_rows(row)?;
             Ok(())
           })
       }
       None => self
         .connection
         .pragma(None, &pragma_name, &sql_value, |row| {
-          value = row_to_unknown(row)?;
+          value = parse_rows(row)?;
           Ok(())
         }),
     }
@@ -343,13 +343,11 @@ impl ScopedConnection<'_> {
         Some(&*schema_name),
         &pragma_name,
         &sql_value,
-        row_to_unknown,
+        parse_rows,
       ),
-      None => {
-        self
-          .connection
-          .pragma_update_and_check(None, &pragma_name, &sql_value, row_to_unknown)
-      }
+      None => self
+        .connection
+        .pragma_update_and_check(None, &pragma_name, &sql_value, parse_rows),
     }
     .map_err(NodeRusqliteError::from)?;
 
@@ -462,7 +460,7 @@ impl ScopedConnection<'_> {
 
     let row = self
       .connection
-      .query_row(&sql, params_from_iter(sql_params.iter()), row_to_unknown)
+      .query_row(&sql, params_from_iter(sql_params.iter()), parse_rows)
       .map_err(NodeRusqliteError::from)?;
 
     env.to_js_value(&row)
@@ -476,7 +474,7 @@ impl ScopedConnection<'_> {
 
     let row = self
       .connection
-      .query_one(&sql, params_from_iter(sql_params.iter()), row_to_unknown)
+      .query_one(&sql, params_from_iter(sql_params.iter()), parse_rows)
       .map_err(NodeRusqliteError::from)?;
 
     env.to_js_value(&row)
@@ -718,11 +716,11 @@ impl Connection {
       Some(schema_name) => {
         self
           .connection
-          .pragma_query_value(Some(&*schema_name), &pragma_name, row_to_unknown)
+          .pragma_query_value(Some(&*schema_name), &pragma_name, parse_rows)
       }
       None => self
         .connection
-        .pragma_query_value(None, &pragma_name, row_to_unknown),
+        .pragma_query_value(None, &pragma_name, parse_rows),
     }
     .map_err(NodeRusqliteError::from)?;
 
@@ -742,11 +740,11 @@ impl Connection {
       Some(schema_name) => self
         .connection
         .pragma_query(Some(&*schema_name), &pragma_name, |row| {
-          value = row_to_unknown(row)?;
+          value = parse_rows(row)?;
           Ok(())
         }),
       None => self.connection.pragma_query(None, &pragma_name, |row| {
-        value = row_to_unknown(row)?;
+        value = parse_rows(row)?;
         Ok(())
       }),
     }
@@ -772,7 +770,7 @@ impl Connection {
         self
           .connection
           .pragma(Some(&*schema_name), &pragma_name, &sql_value, |row| {
-            value = row_to_unknown(row)?;
+            value = parse_rows(row)?;
 
             Ok(())
           })
@@ -780,7 +778,7 @@ impl Connection {
       None => self
         .connection
         .pragma(None, &pragma_name, &sql_value, |row| {
-          value = row_to_unknown(row)?;
+          value = parse_rows(row)?;
 
           Ok(())
         }),
@@ -832,13 +830,11 @@ impl Connection {
         Some(&*schema_name),
         &pragma_name,
         &sql_value,
-        row_to_unknown,
+        parse_rows,
       ),
-      None => {
-        self
-          .connection
-          .pragma_update_and_check(None, &pragma_name, &sql_value, row_to_unknown)
-      }
+      None => self
+        .connection
+        .pragma_update_and_check(None, &pragma_name, &sql_value, parse_rows),
     }
     .map_err(NodeRusqliteError::from)?;
 
@@ -1029,7 +1025,7 @@ impl Connection {
 
     let row = self
       .connection
-      .query_row(&sql, params_from_iter(sql_params.iter()), row_to_unknown)
+      .query_row(&sql, params_from_iter(sql_params.iter()), parse_rows)
       .map_err(NodeRusqliteError::from)?;
 
     env.to_js_value(&row)
@@ -1043,7 +1039,7 @@ impl Connection {
 
     let row = self
       .connection
-      .query_one(&sql, params_from_iter(sql_params.iter()), row_to_unknown)
+      .query_one(&sql, params_from_iter(sql_params.iter()), parse_rows)
       .map_err(NodeRusqliteError::from)?;
 
     env.to_js_value(&row)
