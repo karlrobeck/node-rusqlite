@@ -59,6 +59,25 @@ For more examples, see the [examples folder](./examples/).
 
 ---
 
+## Benchmarks
+
+Performance benchmarks comparing node-rusqlite with other SQLite Node.js
+bindings. See the [benchmark results & documentation](./benchmark/) for:
+
+- **Latest benchmark results** — Performance metrics for INSERT, SELECT, UPDATE,
+  DELETE operations
+- **How to run benchmarks** — Detailed tutorials and command-line options
+- **Performance comparisons** — node-rusqlite vs node-sqlite across various
+  operations
+
+Quick run:
+
+```bash
+deno bench -A benchmark/node.bench.ts
+```
+
+---
+
 ## Installation
 
 **Prerequisites**: Node.js 14.17+ and a C/C++ toolchain (for building Rust
