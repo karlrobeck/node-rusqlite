@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test"
+import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import { Connection, DbConfig } from "../bindings/binding"
 
 describe("Connection - Configuration", () => {
@@ -6,6 +6,16 @@ describe("Connection - Configuration", () => {
 
   beforeEach(() => {
     conn = Connection.openInMemory()
+  })
+
+  afterEach(() => {
+    try {
+      // Force finalization of pending statements
+      conn.execute("PRAGMA integrity_check", [])
+      conn.cacheFlush()
+    } catch (e) {
+      // Ignore errors during cleanup
+    }
   })
 
 

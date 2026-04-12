@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test"
+import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import { Connection } from "../bindings/binding"
 
 describe("Connection - PRAGMA Operations", () => {
@@ -6,6 +6,11 @@ describe("Connection - PRAGMA Operations", () => {
 
   beforeEach(() => {
     conn = Connection.openInMemory()
+  })
+
+  afterEach(() => {
+    const handle = conn.getInterruptHandle()
+    handle.interrupt()
   })
 
 

@@ -1280,7 +1280,9 @@ impl Connection {
   /// @param sql - The SQL statement to prepare.
   /// @param flags - The SQLite prepare flags to use.
   /// @param callback - Called with the prepared statement.
-  #[napi]
+  #[napi(
+    ts_args_type = "sql:string, flags: RusqlitePrepFlags, callback: (statement: ScopedStatement) => void"
+  )]
   pub fn prepare_with_flags(
     &self,
     sql: String,

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test"
+import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import { Connection } from "../bindings/binding"
 
 describe("Interrupt - Long-Running Operations", () => {
@@ -9,6 +9,16 @@ describe("Interrupt - Long-Running Operations", () => {
     conn.execute("CREATE TABLE numbers (id INTEGER PRIMARY KEY, value INTEGER)", [])
     for (let i = 1; i <= 10000; i++) {
       conn.execute("INSERT INTO numbers (value) VALUES (?)", [i])
+    }
+  })
+
+  afterEach(() => {
+    try {
+      // Force finalization of pending statements
+      conn.execute("PRAGMA integrity_check", [])
+      conn.cacheFlush()
+    } catch (e) {
+      // Ignore errors during cleanup
     }
   })
 

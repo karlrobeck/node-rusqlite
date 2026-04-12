@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test"
+import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import { Connection, TransactionBehavior, TransactionState } from "../bindings/binding"
 
 describe("Connection - Transactions & Savepoints", () => {
@@ -9,6 +9,16 @@ describe("Connection - Transactions & Savepoints", () => {
     conn.execute("CREATE TABLE accounts (id INTEGER PRIMARY KEY, balance INTEGER)", [])
     conn.execute("INSERT INTO accounts (balance) VALUES (100)", [])
     conn.execute("INSERT INTO accounts (balance) VALUES (200)", [])
+  })
+
+  afterEach(() => {
+    try {
+      // Force finalization of pending statements
+      conn.execute("PRAGMA integrity_check", [])
+      conn.cacheFlush()
+    } catch (e) {
+      // Ignore errors during cleanup
+    }
   })
 
 

@@ -1,15 +1,23 @@
-import { describe, it, expect, beforeEach, afterAll, afterEach } from "bun:test"
+import { describe, it, expect, beforeEach, beforeAll, afterAll } from "bun:test"
 import { Connection } from "../bindings/binding"
+import { afterEach } from "node:test"
 
 describe("RowIterator - Iterator Protocol", () => {
   let conn: Connection
 
-  beforeEach(() => {
+  beforeAll(() => {
     conn = Connection.openInMemory()
+  })
+
+  beforeEach(() => {
     conn.execute("CREATE TABLE items (id INTEGER PRIMARY KEY, title TEXT, price REAL)", [])
     conn.execute("INSERT INTO items (title, price) VALUES (?, ?)", ["Item1", 10.5])
     conn.execute("INSERT INTO items (title, price) VALUES (?, ?)", ["Item2", 20.75])
     conn.execute("INSERT INTO items (title, price) VALUES (?, ?)", ["Item3", 15.25])
+  })
+
+  afterEach(() => {
+    conn.execute("DROP TABLE items",[])
   })
 
   afterAll(() => {

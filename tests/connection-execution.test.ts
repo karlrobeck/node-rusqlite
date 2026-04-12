@@ -1,15 +1,27 @@
-import { describe, it, expect, beforeEach } from "bun:test"
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from "bun:test"
 import { Connection } from "../bindings/binding"
 
 describe("Connection - Query & Statement Execution", () => {
   let conn: Connection
 
+  beforeAll(() => {
+    conn = Connection.openInMemory();
+  })
+  
+  // Create a test table
   beforeEach(() => {
-    conn = Connection.openInMemory()
-    // Create a test table
     conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)", [])
     conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", ["Alice", 30])
     conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", ["Bob", 25])
+  })
+
+  afterEach(() => {
+    conn.execute("DROP TABLE users",[]);
+  })
+
+  afterAll(async () => {
+    //@ts-expect-error
+    conn = null;
   })
 
 
@@ -103,10 +115,10 @@ describe("Connection - Query & Statement Execution", () => {
       const sql = "SELECT * FROM users"
       let callCount = 0
 
-      conn.prepare(sql, () => {
+      conn.prepare(sql, (_) => {
         callCount++
       })
-      conn.prepare(sql, () => {
+      conn.prepare(sql, (_) => {
         callCount++
       })
 

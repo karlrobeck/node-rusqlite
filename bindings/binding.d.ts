@@ -213,7 +213,7 @@ export declare class Connection {
    * @param flags - The SQLite prepare flags to use.
    * @param callback - Called with the prepared statement.
    */
-  prepareWithFlags(sql: string, flags: RusqlitePrepFlags, callback: any): void
+  prepareWithFlags(sql:string, flags: RusqlitePrepFlags, callback: (statement: ScopedStatement) => void): void
   /** Returns a handle that can interrupt long-running database work. */
   getInterruptHandle(): InterruptHandle
   /** Returns the number of changes made by the most recent operation. */

@@ -1,9 +1,9 @@
 use crate::{BindIndex, Result, Statement, ToSql};
 
 mod sealed {
-    /// This trait exists just to ensure that the only impls of `trait Params`
-    /// that are allowed are ones in this crate.
-    pub trait Sealed {}
+  /// This trait exists just to ensure that the only impls of `trait Params`
+  /// that are allowed are ones in this crate.
+  pub trait Sealed {}
 }
 use sealed::Sealed;
 
@@ -176,15 +176,15 @@ use sealed::Sealed;
 /// A lot of the considerations here are similar either way, so you should see
 /// the [`ParamsFromIter`] documentation for more info / examples.
 pub trait Params: Sealed {
-    // XXX not public api, might not need to expose.
-    //
-    // Binds the parameters to the statement. It is unlikely calling this
-    // explicitly will do what you want. Please use `Statement::query` or
-    // similar directly.
-    //
-    // For now, just hide the function in the docs...
-    #[doc(hidden)]
-    fn __bind_in(self, stmt: &mut Statement<'_>) -> Result<()>;
+  // XXX not public api, might not need to expose.
+  //
+  // Binds the parameters to the statement. It is unlikely calling this
+  // explicitly will do what you want. Please use `Statement::query` or
+  // similar directly.
+  //
+  // For now, just hide the function in the docs...
+  #[doc(hidden)]
+  fn __bind_in(self, stmt: &mut Statement<'_>) -> Result<()>;
 }
 
 // Explicitly impl for empty array. Critically, for `conn.execute([])` to be
@@ -203,47 +203,47 @@ pub trait Params: Sealed {
 // further thought, probably would end up causing *more* surprises, not less.
 impl Sealed for [&(dyn ToSql + Send + Sync); 0] {}
 impl Params for [&(dyn ToSql + Send + Sync); 0] {
-    #[inline]
-    fn __bind_in(self, stmt: &mut Statement<'_>) -> Result<()> {
-        stmt.ensure_parameter_count(0)
-    }
+  #[inline]
+  fn __bind_in(self, stmt: &mut Statement<'_>) -> Result<()> {
+    stmt.ensure_parameter_count(0)
+  }
 }
 
 impl Sealed for &[&dyn ToSql] {}
 impl Params for &[&dyn ToSql] {
-    #[inline]
-    fn __bind_in(self, stmt: &mut Statement<'_>) -> Result<()> {
-        stmt.bind_parameters(self)
-    }
+  #[inline]
+  fn __bind_in(self, stmt: &mut Statement<'_>) -> Result<()> {
+    stmt.bind_parameters(self)
+  }
 }
 
 impl<S: BindIndex, T: ToSql> Sealed for &[(S, T)] {}
 impl<S: BindIndex, T: ToSql> Params for &[(S, T)] {
-    #[inline]
-    fn __bind_in(self, stmt: &mut Statement<'_>) -> Result<()> {
-        stmt.bind_parameters_named(self)
-    }
+  #[inline]
+  fn __bind_in(self, stmt: &mut Statement<'_>) -> Result<()> {
+    stmt.bind_parameters_named(self)
+  }
 }
 
 // Manual impls for the empty and singleton tuple, although the rest are covered
 // by macros.
 impl Sealed for () {}
 impl Params for () {
-    #[inline]
-    fn __bind_in(self, stmt: &mut Statement<'_>) -> Result<()> {
-        stmt.ensure_parameter_count(0)
-    }
+  #[inline]
+  fn __bind_in(self, stmt: &mut Statement<'_>) -> Result<()> {
+    stmt.ensure_parameter_count(0)
+  }
 }
 
 // I'm pretty sure you could tweak the `single_tuple_impl` to accept this.
 impl<T: ToSql> Sealed for (T,) {}
 impl<T: ToSql> Params for (T,) {
-    #[inline]
-    fn __bind_in(self, stmt: &mut Statement<'_>) -> Result<()> {
-        stmt.ensure_parameter_count(1)?;
-        stmt.raw_bind_parameter(1, self.0)?;
-        Ok(())
-    }
+  #[inline]
+  fn __bind_in(self, stmt: &mut Statement<'_>) -> Result<()> {
+    stmt.ensure_parameter_count(1)?;
+    stmt.raw_bind_parameter(1, self.0)?;
+    Ok(())
+  }
 }
 
 macro_rules! single_tuple_impl {
@@ -428,26 +428,26 @@ pub struct ParamsFromIter<I>(I);
 #[inline]
 pub fn params_from_iter<I>(iter: I) -> ParamsFromIter<I>
 where
-    I: IntoIterator,
-    I::Item: ToSql,
+  I: IntoIterator,
+  I::Item: ToSql,
 {
-    ParamsFromIter(iter)
+  ParamsFromIter(iter)
 }
 
 impl<I> Sealed for ParamsFromIter<I>
 where
-    I: IntoIterator,
-    I::Item: ToSql,
+  I: IntoIterator,
+  I::Item: ToSql,
 {
 }
 
 impl<I> Params for ParamsFromIter<I>
 where
-    I: IntoIterator,
-    I::Item: ToSql,
+  I: IntoIterator,
+  I::Item: ToSql,
 {
-    #[inline]
-    fn __bind_in(self, stmt: &mut Statement<'_>) -> Result<()> {
-        stmt.bind_parameters(self.0)
-    }
+  #[inline]
+  fn __bind_in(self, stmt: &mut Statement<'_>) -> Result<()> {
+    stmt.bind_parameters(self.0)
+  }
 }
