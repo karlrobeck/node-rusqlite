@@ -293,7 +293,7 @@ export function example_identify_sorting_issues(db: Connection) {
 
   // Query1: Before index on price
   console.log("Query: SELECT * FROM products ORDER BY price DESC LIMIT 100");
-  
+
   db.prepare("SELECT * FROM products ORDER BY price DESC LIMIT 100", (stmt) => {
     stmt.query([]);
     sortBefore = stmt.getStatus(RusqliteStatementStatus.Sort);

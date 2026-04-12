@@ -97,7 +97,7 @@ export function example_check_busy(db: Connection) {
   console.log(`  isBusy: ${db.isBusy()}`); // false
 
   console.log("\nAfter query (completed):");
-  db.queryOne("SELECT * FROM tasks LIMIT 1",[]);
+  db.queryOne("SELECT * FROM tasks LIMIT 1", []);
   console.log(`  isBusy: ${db.isBusy()}`); // false (query completed)
 }
 
@@ -222,7 +222,7 @@ export function example_last_insert_rowid(db: Connection) {
   console.log(`Next inserted row ID: ${idB}`);
 
   // After non-insert query
-  db.queryOne("SELECT * FROM tasks LIMIT 1",[]);
+  db.queryOne("SELECT * FROM tasks LIMIT 1", []);
   const afterSelect = db.lastInsertRowid();
   console.log(
     `Last insert ID after SELECT (unchanged): ${afterSelect}`,

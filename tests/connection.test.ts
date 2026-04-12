@@ -1,30 +1,27 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { Connection, OpenFlags } from "../bindings/binding";
+import { expect } from "@std/expect";
+// @ts-types="../bindings/binding.d.ts"
+import { Connection, OpenFlags } from "../bindings/binding.js";
 import { mkdirSync, rmdirSync } from "node:fs";
 
-describe("open", () => {
-  beforeAll(() => {
-    mkdirSync("/tmp/node-rusqlite-test/connection", { recursive: true });
-  });
-
-  afterAll(async () => {
-    rmdirSync("/tmp/node-rusqlite-test/connection");
-  });
-
-  it("should open properly", () => {
-    const conn = Connection.open("/tmp/node-rusqlite-test/path.db", {
-      flags: OpenFlags.SqliteOpenCreate | OpenFlags.SqliteOpenReadwrite,
-    });
-
-    expect(() => conn.queryOne("select sqlite_version()", [])).not
-      .toThrowError();
-  });
+Deno.test.beforeAll(() => {
+  mkdirSync("/tmp/node-rusqlite-test/connection", { recursive: true });
 });
 
-describe("openInMemory", () => {
-  it("should open in memory mode", () => {
-    const conn = Connection.openInMemory();
-    expect(() => conn.queryOne("select sqlite_version()", [])).not
-      .toThrowError();
+Deno.test.afterAll(async () => {
+  rmdirSync("/tmp/node-rusqlite-test/connection");
+});
+
+Deno.test("should open properly", () => {
+  const conn = Connection.open("/tmp/node-rusqlite-test/path.db", {
+    flags: OpenFlags.SqliteOpenCreate | OpenFlags.SqliteOpenReadwrite,
   });
+
+  expect(() => conn.queryOne("select sqlite_version()", [])).not
+    .toThrowError();
+});
+
+Deno.test("should open in memory mode", () => {
+  const conn = Connection.openInMemory();
+  expect(() => conn.queryOne("select sqlite_version()", [])).not
+    .toThrowError();
 });

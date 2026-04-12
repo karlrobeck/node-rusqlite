@@ -133,28 +133,27 @@ export async function example_set_pragma_without_check(db: Connection) {
  */
 export function example_set_pragma_and_check(db: Connection) {
   // Set journal mode to WAL and check it was applied
-  const result = db.pragmaUpdateAndCheck(null, "journal_mode", 
-    "wal",
-  ) as Record<
+  const result = db.pragmaUpdateAndCheck(null, "journal_mode", "wal") as Record<
     string,
     unknown
   >;
   console.log("Journal mode after setting:", result);
   // Typically returns something like { journal_mode: 'wal' }
 
-  // Set cache 
+  // Set cache
   try {
-     const cacheResult = db.pragmaUpdateAndCheck(null, "cache_size", 
-    -64000,
-  ) as Record<
-    string,
-    unknown
-  >;
-  console.log("Cache size after setting:", cacheResult);
+    const cacheResult = db.pragmaUpdateAndCheck(
+      null,
+      "cache_size",
+      -64000,
+    ) as Record<
+      string,
+      unknown
+    >;
+    console.log("Cache size after setting:", cacheResult);
   } catch (err) {
     console.error("Failed to set cache size:", err);
   }
- 
 }
 
 /**

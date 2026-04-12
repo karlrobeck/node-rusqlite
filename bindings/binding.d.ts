@@ -3,21 +3,21 @@
 /** Information about a column of a SQLite query. */
 export declare class Column {
   /** Returns the name of the column. */
-  name(): string
+  name(): string;
   /** Returns the type of the column (`null` for expression). */
-  declType(): string | null
+  declType(): string | null;
 }
 
 /** Metadata about the origin of a column of a SQLite query */
 export declare class ColumnMetadata {
   /** Returns the name of the column in the query results */
-  name(): string
+  name(): string;
   /** Returns the database name from which the column originates */
-  databaseName(): string | null
+  databaseName(): string | null;
   /** Returns the table name from which the column originates */
-  tableName(): string | null
+  tableName(): string | null;
   /** Returns the column name from which the column originates */
-  originName(): string | null
+  originName(): string | null;
 }
 
 /** A live SQLite connection exposed to JavaScript. */
@@ -29,14 +29,19 @@ export declare class Connection {
    * @param options - Optional open flags and VFS settings.
    * @returns A new connection.
    */
-  static open(path: string, options?: ConnectionOptions | undefined | null): Connection
+  static open(
+    path: string,
+    options?: ConnectionOptions | undefined | null,
+  ): Connection;
   /**
    * Opens an in-memory SQLite database.
    *
    * @param options - Optional open flags and VFS settings.
    * @returns A new in-memory connection.
    */
-  static openInMemory(options?: ConnectionOptions | undefined | null): Connection
+  static openInMemory(
+    options?: ConnectionOptions | undefined | null,
+  ): Connection;
   /**
    * Returns whether a column exists in the given table.
    *
@@ -45,7 +50,11 @@ export declare class Connection {
    * @param columnName - The column name to look for.
    * @returns `true` when the column exists, otherwise `false`.
    */
-  columnExists(dbName: string | undefined | null, tableName: string, columnName: string): boolean
+  columnExists(
+    dbName: string | undefined | null,
+    tableName: string,
+    columnName: string,
+  ): boolean;
   /**
    * Returns whether a table exists in the given database.
    *
@@ -53,7 +62,7 @@ export declare class Connection {
    * @param tableName - The table name to look for.
    * @returns `true` when the table exists, otherwise `false`.
    */
-  tableExists(dbName: string | undefined | null, tableName: string): boolean
+  tableExists(dbName: string | undefined | null, tableName: string): boolean;
   /**
    * Returns detailed metadata for a column in a table.
    *
@@ -62,20 +71,24 @@ export declare class Connection {
    * @param columnName - The column name to inspect.
    * @returns Column metadata for the requested column.
    */
-  columnMetadata(dbName: string | undefined | null, tableName: string, columnName: string): ConnectionColumnMetadata
+  columnMetadata(
+    dbName: string | undefined | null,
+    tableName: string,
+    columnName: string,
+  ): ConnectionColumnMetadata;
   /**
    * Reads a SQLite database configuration flag.
    *
    * @param config - The configuration flag to query.
    */
-  dbConfig(config: DbConfig): void
+  dbConfig(config: DbConfig): void;
   /**
    * Sets a SQLite database configuration flag.
    *
    * @param config - The configuration flag to change.
    * @param on - Whether the flag should be enabled.
    */
-  setDbConfig(config: DbConfig, on: boolean): void
+  setDbConfig(config: DbConfig, on: boolean): void;
   /**
    * Reads a PRAGMA value and returns the parsed result.
    *
@@ -83,7 +96,10 @@ export declare class Connection {
    * @param pragmaName - The PRAGMA name to query.
    * @returns The PRAGMA result as a JavaScript value.
    */
-  pragmaQueryValue(schemaName: string | undefined | null, pragmaName: string): unknown
+  pragmaQueryValue(
+    schemaName: string | undefined | null,
+    pragmaName: string,
+  ): unknown;
   /**
    * Runs a PRAGMA query and returns the row as a plain object.
    *
@@ -91,7 +107,10 @@ export declare class Connection {
    * @param pragmaName - The PRAGMA name to query.
    * @returns The PRAGMA row as a JavaScript object.
    */
-  pragmaQuery(schemaName: string | undefined | null, pragmaName: string): Record<string,unknown>
+  pragmaQuery(
+    schemaName: string | undefined | null,
+    pragmaName: string,
+  ): Record<string, unknown>;
   /**
    * Runs a PRAGMA statement and invokes a callback with the resulting row.
    *
@@ -100,7 +119,12 @@ export declare class Connection {
    * @param pragmaValue - The PRAGMA value to send.
    * @param callback - Called with the resulting PRAGMA row.
    */
-  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown, callback: (value:Record<string,unknown>) => void): void
+  pragma(
+    schemaName: string | undefined | null,
+    pragmaName: string,
+    pragmaValue: unknown,
+    callback: (value: Record<string, unknown>) => void,
+  ): void;
   /**
    * Updates a PRAGMA value without returning the resulting row.
    *
@@ -108,7 +132,11 @@ export declare class Connection {
    * @param pragmaName - The PRAGMA name to execute.
    * @param pragmaValue - The PRAGMA value to send.
    */
-  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown): Promise<void>
+  pragmaUpdate(
+    schemaName: string | undefined | null,
+    pragmaName: string,
+    pragmaValue: unknown,
+  ): Promise<void>;
   /**
    * Updates a PRAGMA value and returns the resulting row as an object.
    *
@@ -117,58 +145,68 @@ export declare class Connection {
    * @param pragmaValue - The PRAGMA value to send.
    * @returns The resulting PRAGMA row as a JavaScript object.
    */
-  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown): Record<string,unknown>
+  pragmaUpdateAndCheck(
+    schemaName: string | undefined | null,
+    pragmaName: string,
+    pragmaValue: unknown,
+  ): Record<string, unknown>;
   /**
    * Runs a transaction and commits on success or rolls back on error.
    *
    * @param callback - Called with a scoped connection inside the transaction.
    */
-  transaction(callback: (connection: ScopedConnection) => void): void
+  transaction(callback: (connection: ScopedConnection) => void): void;
   /**
    * Runs a transaction with the specified behavior.
    *
    * @param behavior - The transaction behavior to use.
    * @param callback - Called with a scoped connection inside the transaction.
    */
-  transactionWithBehavior(behavior: TransactionBehavior, callback: (connection: ScopedConnection) => void): void
+  transactionWithBehavior(
+    behavior: TransactionBehavior,
+    callback: (connection: ScopedConnection) => void,
+  ): void;
   /**
    * Runs a transaction without extra checks and commits or rolls back based on the callback.
    *
    * @param callback - Called with a scoped connection inside the transaction.
    */
-  uncheckedTransaction(callback: (connection: ScopedConnection) => void): void
+  uncheckedTransaction(callback: (connection: ScopedConnection) => void): void;
   /**
    * Runs a savepoint and commits on success or rolls back on error.
    *
    * @param callback - Called with a scoped connection inside the savepoint.
    */
-  savepoint(callback: (transaction: ScopedConnection) => void): void
+  savepoint(callback: (transaction: ScopedConnection) => void): void;
   /**
    * Runs a named savepoint and commits on success or rolls back on error.
    *
    * @param name - The savepoint name.
    * @param callback - Called with a scoped connection inside the savepoint.
    */
-  savepointWithName(name: String, callback: (transaction: ScopedConnection) => void): void
+  savepointWithName(
+    name: String,
+    callback: (transaction: ScopedConnection) => void,
+  ): void;
   /**
    * Returns the current transaction state for the given database.
    *
    * @param dbName - The database name, or `null` to use the main database.
    * @returns The current transaction state.
    */
-  transactionState(dbName?: string | undefined | null): TransactionState
+  transactionState(dbName?: string | undefined | null): TransactionState;
   /**
    * Sets the default transaction behavior for future transactions.
    *
    * @param behavior - The transaction behavior to use.
    */
-  setTransactionBehavior(behavior: TransactionBehavior): void
+  setTransactionBehavior(behavior: TransactionBehavior): void;
   /**
    * Executes a batch of SQL statements.
    *
    * @param sql - The SQL batch to execute.
    */
-  executeBatch(sql: string): void
+  executeBatch(sql: string): void;
   /**
    * Executes a single SQL statement with positional parameters.
    *
@@ -176,13 +214,13 @@ export declare class Connection {
    * @param sqlParams - The ordered parameter values.
    * @returns The number of rows affected.
    */
-  execute(sql: string, sqlParams: unknown[]): number
+  execute(sql: string, sqlParams: unknown[]): number;
   /** Returns the filesystem path for the connection, if any. */
-  path(): string
+  path(): string;
   /** Asks SQLite to release as much memory as possible. */
-  releaseMemory(): void
+  releaseMemory(): void;
   /** Returns the most recent inserted row id. */
-  lastInsertRowid(): number
+  lastInsertRowid(): number;
   /**
    * Executes a query and returns the first row as an object.
    *
@@ -190,7 +228,7 @@ export declare class Connection {
    * @param sqlParams - The ordered parameter values.
    * @returns The first matching row as a JavaScript object.
    */
-  queryRow(sql: string, sqlParams: unknown[]): Record<string,unknown>
+  queryRow(sql: string, sqlParams: unknown[]): Record<string, unknown>;
   /**
    * Executes a query and returns a single row as an object.
    *
@@ -198,14 +236,14 @@ export declare class Connection {
    * @param params - The ordered parameter values.
    * @returns A single row as a JavaScript object.
    */
-  queryOne(sql: string, params: unknown[]): Record<string,unknown>
+  queryOne(sql: string, params: unknown[]): Record<string, unknown>;
   /**
    * Prepares a SQL statement and passes it to a callback.
    *
    * @param sql - The SQL statement to prepare.
    * @param callback - Called with the prepared statement.
    */
-  prepare(sql: String, callback: (statement: ScopedStatement) => void): void
+  prepare(sql: String, callback: (statement: ScopedStatement) => void): void;
   /**
    * Prepares a SQL statement with explicit SQLite prepare flags.
    *
@@ -213,40 +251,43 @@ export declare class Connection {
    * @param flags - The SQLite prepare flags to use.
    * @param callback - Called with the prepared statement.
    */
-  prepareWithFlags(sql:string, flags: RusqlitePrepFlags, callback: (statement: ScopedStatement) => void): void
+  prepareWithFlags(
+    sql: string,
+    flags: RusqlitePrepFlags,
+    callback: (statement: ScopedStatement) => void,
+  ): void;
   /** Returns a handle that can interrupt long-running database work. */
-  getInterruptHandle(): InterruptHandle
+  getInterruptHandle(): InterruptHandle;
   /** Returns the number of changes made by the most recent operation. */
-  changes(): number
+  changes(): number;
   /** Returns the total number of changes made on the connection. */
-  totalChanges(): number
+  totalChanges(): number;
   /** Returns whether the connection is currently in autocommit mode. */
-  isAutocommit(): boolean
+  isAutocommit(): boolean;
   /** Returns whether the connection is busy. */
-  isBusy(): boolean
+  isBusy(): boolean;
   /** Flushes the SQLite cache. */
-  cacheFlush(): void
+  cacheFlush(): void;
   /**
    * Returns whether the specified database is read-only.
    *
    * @param dbName - The database name to inspect.
    */
-  isReadonly(dbName: string): boolean
+  isReadonly(dbName: string): boolean;
   /**
    * Returns the name of the attached database at the given index.
    *
    * @param index - The zero-based database index.
    */
-  dbName(index: number): string
+  dbName(index: number): string;
   /** Returns whether the connection has been interrupted. */
-  isInterrupted(): boolean
-
+  isInterrupted(): boolean;
 }
 
 /** Handle that can be used to interrupt a running SQLite operation. */
 export declare class InterruptHandle {
   /** Interrupts the associated SQLite connection. */
-  interrupt(): void
+  interrupt(): void;
 }
 
 /**
@@ -259,8 +300,7 @@ export declare class InterruptHandle {
  * @see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html#iterator-helper-methods
  */
 export declare class RowIterator extends Iterator<unknown, number, number> {
-
-  next(value?: number): IteratorResult<unknown, number>
+  next(value?: number): IteratorResult<unknown, number>;
 }
 
 /** A collection of query result rows, stored in a JavaScript-friendly format. */
@@ -269,15 +309,15 @@ export declare class Rows {
    * Converts the rows collection into a JavaScript value.
    * @returns A JavaScript representation of all rows.
    */
-  toJSON(): Record<string, unknown>[]
+  toJSON(): Record<string, unknown>[];
   /** Creates an iterator that yields each row one at a time. */
-  iterate(): RowIterator
+  iterate(): RowIterator;
   /**
    * Returns the row at the provided zero-based index.
    * @param index - The zero-based row index.
    * @returns The row at `index`, or `undefined` when the index is out of bounds.
    */
-  get(index: number): unknown | null
+  get(index: number): unknown | null;
 }
 
 /** A borrowed SQLite connection used inside transaction and savepoint callbacks. */
@@ -290,7 +330,11 @@ export declare class ScopedConnection {
    * @param columnName - The column name to look for.
    * @returns `true` when the column exists, otherwise `false`.
    */
-  columnExists(dbName: string | undefined | null, tableName: string, columnName: string): boolean
+  columnExists(
+    dbName: string | undefined | null,
+    tableName: string,
+    columnName: string,
+  ): boolean;
   /**
    * Returns whether a table exists in the given database.
    *
@@ -298,7 +342,7 @@ export declare class ScopedConnection {
    * @param tableName - The table name to look for.
    * @returns `true` when the table exists, otherwise `false`.
    */
-  tableExists(dbName: string | undefined | null, tableName: string): boolean
+  tableExists(dbName: string | undefined | null, tableName: string): boolean;
   /**
    * Returns detailed metadata for a column in a table.
    *
@@ -307,20 +351,24 @@ export declare class ScopedConnection {
    * @param columnName - The column name to inspect.
    * @returns Column metadata for the requested column.
    */
-  columnMetadata(dbName: string | undefined | null, tableName: string, columnName: string): ConnectionColumnMetadata
+  columnMetadata(
+    dbName: string | undefined | null,
+    tableName: string,
+    columnName: string,
+  ): ConnectionColumnMetadata;
   /**
    * Reads a SQLite database configuration flag.
    *
    * @param config - The configuration flag to query.
    */
-  dbConfig(config: DbConfig): void
+  dbConfig(config: DbConfig): void;
   /**
    * Sets a SQLite database configuration flag.
    *
    * @param config - The configuration flag to change.
    * @param on - Whether the flag should be enabled.
    */
-  setDbConfig(config: DbConfig, on: boolean): void
+  setDbConfig(config: DbConfig, on: boolean): void;
   /**
    * Reads a PRAGMA value and returns the parsed result.
    *
@@ -328,7 +376,10 @@ export declare class ScopedConnection {
    * @param pragmaName - The PRAGMA name to query.
    * @returns The PRAGMA result as a JavaScript value.
    */
-  pragmaQueryValue(schemaName: string | undefined | null, pragmaName: string): unknown
+  pragmaQueryValue(
+    schemaName: string | undefined | null,
+    pragmaName: string,
+  ): unknown;
   /**
    * Runs a PRAGMA query and returns the row as a plain object.
    *
@@ -336,7 +387,10 @@ export declare class ScopedConnection {
    * @param pragmaName - The PRAGMA name to query.
    * @returns The PRAGMA row as a JavaScript object.
    */
-  pragmaQuery(schemaName: string | undefined | null, pragmaName: string): Record<string,unknown>
+  pragmaQuery(
+    schemaName: string | undefined | null,
+    pragmaName: string,
+  ): Record<string, unknown>;
   /**
    * Runs a PRAGMA statement and invokes a callback with the resulting row.
    *
@@ -345,7 +399,12 @@ export declare class ScopedConnection {
    * @param pragmaValue - The PRAGMA value to send.
    * @param callback - Called with the resulting PRAGMA row.
    */
-  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown, callback: (value: Record<string, unknown>) => void): void
+  pragma(
+    schemaName: string | undefined | null,
+    pragmaName: string,
+    pragmaValue: unknown,
+    callback: (value: Record<string, unknown>) => void,
+  ): void;
   /**
    * Updates a PRAGMA value without returning the resulting row.
    *
@@ -353,7 +412,11 @@ export declare class ScopedConnection {
    * @param pragmaName - The PRAGMA name to execute.
    * @param pragmaValue - The PRAGMA value to send.
    */
-  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown): void
+  pragmaUpdate(
+    schemaName: string | undefined | null,
+    pragmaName: string,
+    pragmaValue: unknown,
+  ): void;
   /**
    * Updates a PRAGMA value and returns the resulting row as an object.
    *
@@ -362,33 +425,40 @@ export declare class ScopedConnection {
    * @param pragmaValue - The PRAGMA value to send.
    * @returns The resulting PRAGMA row as a JavaScript object.
    */
-  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown): Record<string,unknown>
+  pragmaUpdateAndCheck(
+    schemaName: string | undefined | null,
+    pragmaName: string,
+    pragmaValue: unknown,
+  ): Record<string, unknown>;
   /**
    * Runs a transaction and commits on success or rolls back on error.
    *
    * @param callback - Called with a scoped connection inside the transaction.
    */
-  savepoint(callback: (transaction: ScopedConnection) => void): void
+  savepoint(callback: (transaction: ScopedConnection) => void): void;
   /**
    * Runs a named savepoint and commits on success or rolls back on error.
    *
    * @param name - The savepoint name.
    * @param callback - Called with a scoped connection inside the savepoint.
    */
-  savepointWithName(name: string, callback: (transaction: ScopedConnection) => void): void
+  savepointWithName(
+    name: string,
+    callback: (transaction: ScopedConnection) => void,
+  ): void;
   /**
    * Returns the current transaction state for the given database.
    *
    * @param dbName - The database name, or `null` to use the main database.
    * @returns The current transaction state.
    */
-  transactionState(dbName?: string | undefined | null): TransactionState
+  transactionState(dbName?: string | undefined | null): TransactionState;
   /**
    * Executes a batch of SQL statements.
    *
    * @param sql - The SQL batch to execute.
    */
-  executeBatch(sql: string): void
+  executeBatch(sql: string): void;
   /**
    * Executes a single SQL statement with positional parameters.
    *
@@ -396,13 +466,13 @@ export declare class ScopedConnection {
    * @param sqlParams - The ordered parameter values.
    * @returns The number of rows affected.
    */
-  execute(sql: string, sqlParams: unknown[]): number
+  execute(sql: string, sqlParams: unknown[]): number;
   /** Returns the filesystem path for the connection, if any. */
-  path(): string
+  path(): string;
   /** Asks SQLite to release as much memory as possible. */
-  releaseMemory(): void
+  releaseMemory(): void;
   /** Returns the most recent inserted row id. */
-  lastInsertRowid(): number
+  lastInsertRowid(): number;
   /**
    * Executes a query and returns the first row as an object.
    *
@@ -410,7 +480,7 @@ export declare class ScopedConnection {
    * @param sqlParams - The ordered parameter values.
    * @returns The first matching row as a JavaScript object.
    */
-  queryRow(sql: string, sqlParams: unknown[]): Record<string,unknown>
+  queryRow(sql: string, sqlParams: unknown[]): Record<string, unknown>;
   /**
    * Executes a query and returns a single row as an object.
    *
@@ -418,14 +488,14 @@ export declare class ScopedConnection {
    * @param params - The ordered parameter values.
    * @returns A single row as a JavaScript object.
    */
-  queryOne(sql: string, sqlParams: unknown[]): Record<string,unknown>
+  queryOne(sql: string, sqlParams: unknown[]): Record<string, unknown>;
   /**
    * Prepares a SQL statement and passes it to a callback.
    *
    * @param sql - The SQL statement to prepare.
    * @param callback - Called with the prepared statement.
    */
-  prepare(sql:string, callback: (statement: ScopedStatement) => void): void
+  prepare(sql: string, callback: (statement: ScopedStatement) => void): void;
   /**
    * Prepares a SQL statement with explicit SQLite prepare flags.
    *
@@ -433,152 +503,155 @@ export declare class ScopedConnection {
    * @param flags - The SQLite prepare flags to use.
    * @param callback - Called with the prepared statement.
    */
-  prepareWithFlags(sql:string, flags: RusqlitePrepFlags, callback: (statement: ScopedStatement) => void): void
+  prepareWithFlags(
+    sql: string,
+    flags: RusqlitePrepFlags,
+    callback: (statement: ScopedStatement) => void,
+  ): void;
   /** Returns a handle that can interrupt long-running database work. */
-  getInterruptHandle(): InterruptHandle
+  getInterruptHandle(): InterruptHandle;
   /** Returns the number of changes made by the most recent operation. */
-  changes(): number
+  changes(): number;
   /** Returns the total number of changes made on the connection. */
-  totalChanges(): number
+  totalChanges(): number;
   /** Returns whether the connection is currently in autocommit mode. */
-  isAutocommit(): boolean
+  isAutocommit(): boolean;
   /** Returns whether the connection is busy. */
-  isBusy(): boolean
+  isBusy(): boolean;
   /** Flushes the SQLite cache. */
-  cacheFlush(): void
+  cacheFlush(): void;
   /**
    * Returns whether the specified database is read-only.
    *
    * @param dbName - The database name to inspect.
    */
-  isReadonly(dbName: string): boolean
+  isReadonly(dbName: string): boolean;
   /**
    * Returns the name of the attached database at the given index.
    *
    * @param index - The zero-based database index.
    */
-  dbName(index: number): string
+  dbName(index: number): string;
   /** Returns whether the connection has been interrupted. */
-  isInterrupted(): boolean
+  isInterrupted(): boolean;
 }
 
 /** A prepared SQLite statement that is scoped to the lifetime of the underlying connection. */
 export declare class ScopedStatement {
   /** Returns the names of all result columns in order. */
-  columnNames(): Array<string>
+  columnNames(): Array<string>;
   /** Returns the number of result columns in the statement. */
-  columnCount(): number
+  columnCount(): number;
   /**
    * Returns the name of a result column by zero-based index.
    *
    * @param col - The zero-based column index.
    * @returns The column name.
    */
-  columnName(col: number): string
+  columnName(col: number): string;
   /**
    * Returns the zero-based index of a named result column.
    *
    * @param name - The column name to look up.
    * @returns The column index.
    */
-  columnIndex(name: string): number
+  columnIndex(name: string): number;
   /** Returns all result columns as lightweight metadata objects. */
-  columns(): Array<Column>
+  columns(): Array<Column>;
   /** Returns all result columns with detailed metadata attached. */
-  columnsWithMetadata(): Array<ColumnMetadata>
+  columnsWithMetadata(): Array<ColumnMetadata>;
   /**
    * Returns detailed metadata for a single result column.
    *
    * @param col - The zero-based column index.
    * @returns Detailed metadata for the column, or `undefined` if unavailable.
    */
-  columnMetadata(col: number): RusqliteDetailedColumnMetadata | null
+  columnMetadata(col: number): RusqliteDetailedColumnMetadata | null;
   /**
    * Executes the statement with the provided SQL parameters.
    *
    * @param params - The ordered parameter values for the SQL statement.
    * @returns The number of rows affected.
    */
-  execute(params: unknown[]): number
+  execute(params: unknown[]): number;
   /**
    * Executes an INSERT statement with the provided SQL parameters.
    *
    * @param params - The ordered parameter values for the SQL statement.
    * @returns The inserted rowid.
    */
-  insert(params: unknown[]): number
+  insert(params: unknown[]): number;
   /**
    * Runs a query and collects the full result set.
    *
    * @param params - The ordered parameter values for the SQL statement.
    * @returns All rows returned by the query.
    */
-  query(params: unknown[]): Rows
+  query(params: unknown[]): Rows;
   /**
    * Checks whether the query returns at least one row.
    *
    * @param params - The ordered parameter values for the SQL statement.
    * @returns `true` when the query returns a row, otherwise `false`.
    */
-  exists(params: unknown[]): boolean
+  exists(params: unknown[]): boolean;
   /**
    * Returns the zero-based index for a named statement parameter.
    *
    * @param name - The parameter name, such as `$name` or `:name`.
    * @returns The parameter index, or `undefined` when the parameter is not found.
    */
-  parameterIndex(name: string): number | null
+  parameterIndex(name: string): number | null;
   /**
    * Returns the parameter name for a zero-based parameter index.
    *
    * @param index - The zero-based parameter index.
    * @returns The parameter name, or `undefined` when the parameter is anonymous.
    */
-  parameterName(index: number): string | null
+  parameterName(index: number): string | null;
   /** Returns the number of parameters accepted by the statement. */
-  parameterCount(): number
+  parameterCount(): number;
   /** Returns the SQL text after parameter expansion, if available. */
-  expandedSql(): string | null
+  expandedSql(): string | null;
   /**
    * Returns the value of a statement status counter.
    *
    * @param status - The status counter to read.
    * @returns The current counter value.
    */
-  getStatus(status: RusqliteStatementStatus): number
+  getStatus(status: RusqliteStatementStatus): number;
   /**
    * Resets a statement status counter and returns its previous value.
    *
    * @param status - The status counter to reset.
    * @returns The previous counter value.
    */
-  resetStatus(status: RusqliteStatementStatus): number
+  resetStatus(status: RusqliteStatementStatus): number;
   /** Returns whether the statement is an `EXPLAIN` statement. */
-  isExplain(): number
+  isExplain(): number;
   /** Returns whether the statement is read-only. */
-  readonly(): boolean
+  readonly(): boolean;
   /** Clears all bound parameter values from the statement. */
-  clearBindings(): void
-
+  clearBindings(): void;
 }
 
 export interface ConnectionColumnMetadata {
   /** declared data type */
-  type?: string
+  type?: string;
   /** name of default collation sequence */
-  collationSequence?: string
+  collationSequence?: string;
   /** `true` if column has a NOT NULL constraint */
-  notNull: boolean
+  notNull: boolean;
   /** `true` if column is part of the PRIMARY KEY */
-  primaryKey: boolean
+  primaryKey: boolean;
   /** `true` if column is AUTOINCREMENT */
-  autoIncrement: boolean
+  autoIncrement: boolean;
 }
 
 /** Options for opening a SQLite connection. */
 export interface ConnectionOptions {
-  flags?: number
-  vfs?: string
+  flags?: number;
+  vfs?: string;
 }
 
 /** SQLite database configuration switches exposed to JavaScript. */
@@ -602,7 +675,7 @@ export declare const enum DbConfig {
   SqliteDbconfigReverseScanOrder = 1019,
   SqliteDbconfigEnableAttachCreate = 1020,
   SqliteDbconfigEnableAttachWrite = 1021,
-  SqliteDbconfigEnableComments = 1022
+  SqliteDbconfigEnableComments = 1022,
 }
 
 /** What should happen when a transaction is dropped without being completed. */
@@ -614,7 +687,7 @@ export declare const enum DropBehavior {
   /** Ignore the drop and leave the transaction state alone. */
   Ignore = 2,
   /** Panic if the transaction is dropped without being completed. */
-  Panic = 3
+  Panic = 3,
 }
 
 /** Flags that control how a SQLite database is opened. */
@@ -640,33 +713,33 @@ export declare const enum OpenFlags {
   SqliteOpenPrivatecache = 262144,
   SqliteOpenWal = 524288,
   SqliteOpenNofollow = 16777216,
-  SqliteOpenExrescode = 33554432
+  SqliteOpenExrescode = 33554432,
 }
 
 /** Progress information returned by long-running SQLite operations. */
 export interface Progress {
-  remaining: number
-  pageCount: number
+  remaining: number;
+  pageCount: number;
 }
 
 /** Detailed column metadata returned by `column_metadata`. */
 export interface RusqliteDetailedColumnMetadata {
   /** The database name the column comes from. */
-  databaseName: string
+  databaseName: string;
   /** The table name the column comes from. */
-  tableName: string
+  tableName: string;
   /** The column name. */
-  columnName: string
+  columnName: string;
   /** The declared SQLite type, if available. */
-  type?: string
+  type?: string;
   /** The default collation sequence, if available. */
-  collationSequence?: string
+  collationSequence?: string;
   /** Whether the column has a `NOT NULL` constraint. */
-  notNull: boolean
+  notNull: boolean;
   /** Whether the column is part of the primary key. */
-  primaryKey: boolean
+  primaryKey: boolean;
   /** Whether the column uses autoincrement. */
-  autoIncrement: boolean
+  autoIncrement: boolean;
 }
 
 /** Flags that control how SQLite prepares SQL text. */
@@ -676,7 +749,7 @@ export declare const enum RusqlitePrepFlags {
   /** Disable virtual table support while preparing. */
   SqlitePrepareNoVtab = 4,
   /** Prevent SQLite from emitting prepare-time log messages. */
-  SqlitePrepareDontLog = 16
+  SqlitePrepareDontLog = 16,
 }
 
 /** Status counters that can be read from a prepared SQLite statement. */
@@ -698,7 +771,7 @@ export declare const enum RusqliteStatementStatus {
   /** Number of rows that matched the filter. */
   FilterHit = 8,
   /** Approximate memory used by the statement. */
-  MemUsed = 99
+  MemUsed = 99,
 }
 
 /** How a transaction should begin. */
@@ -708,7 +781,7 @@ export declare const enum TransactionBehavior {
   /** Begin the transaction immediately. */
   Immediate = 1,
   /** Begin the transaction exclusively. */
-  Exclusive = 2
+  Exclusive = 2,
 }
 
 /** The current SQLite transaction state for a connection. */
@@ -718,5 +791,5 @@ export declare const enum TransactionState {
   /** An active read transaction. */
   Read = 1,
   /** An active write transaction. */
-  Write = 2
+  Write = 2,
 }

@@ -476,17 +476,15 @@ export function production_configuration_checklist(db: Connection) {
     },
   ];
 
-  
   try {
     checks.forEach((check) => {
-    check.action();
-    const verified = check.verify();
-    console.log(`${check.name.padEnd(25)} ${verified ? "✓" : "✗"}`);
-  });
+      check.action();
+      const verified = check.verify();
+      console.log(`${check.name.padEnd(25)} ${verified ? "✓" : "✗"}`);
+    });
   } catch (error) {
     console.error("Error applying configuration:", error);
   }
-  
 
   console.log("\n✓ Production configuration complete");
 }
