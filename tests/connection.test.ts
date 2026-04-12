@@ -1,4 +1,4 @@
-import {afterAll, beforeAll, describe, it} from "bun:test"
+import {afterAll, beforeAll, describe, expect, it} from "bun:test"
 import { Connection, OpenFlags } from "../bindings/binding"
 import {mkdirSync,rmdirSync} from "node:fs";
 
@@ -17,12 +17,15 @@ describe("open", () => {
       flags: OpenFlags.SqliteOpenCreate | OpenFlags.SqliteOpenReadwrite
     });
 
-    const result = conn.queryOne('select sqlite_version()',[])
-
-    console.log(result)
+    expect(() => conn.queryOne('select sqlite_version()',[])).not.toThrowError()
   })
 })
 
 describe("openInMemory", () => {
+
+  it("should open in memory mode", () => {
+    const conn = Connection.openInMemory();
+    expect(() => conn.queryOne("select sqlite_version()",[])).not.toThrowError();
+  })
 
 })
