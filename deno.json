@@ -1,4 +1,12 @@
 {
+  "tasks": {
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform -o bindings --js binding.js --esm --dts binding.d.ts",
+    "format": "deno run -A npm:prettier . -w",
+    "lint": "deno lint",
+    "test": "deno test tests/*.test.ts",
+    "bench": "deno run -A npm:tinybench"
+  },
   "imports": {
     "@std/assert": "jsr:@std/assert@^1.0.19",
     "@std/expect": "jsr:@std/expect@^1.0.18"
