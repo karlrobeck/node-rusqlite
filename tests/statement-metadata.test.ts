@@ -135,7 +135,7 @@ Deno.test("statement.columnIndex()", async (t) => {
     expect(index).toBe(2);
   });
 
-  it.todo("should return -1 or null for non-existent column", () => {
+  await t.step("should return -1 or null for non-existent column", () => {
     let index: number | null = 0;
     conn.prepare("SELECT id, name FROM users", (stmt) => {
       const idx = stmt.columnIndex("nonexistent");

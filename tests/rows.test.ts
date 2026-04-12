@@ -1,10 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { Connection } from "../bindings/binding";
+import { expect } from "@std/expect";
+import { Connection } from "../bindings/binding.js";
 
-describe("Rows - Result Set Operations", () => {
   let conn: Connection;
 
-  beforeEach(() => {
+  Deno.test.beforeEach(() => {
     conn = Connection.openInMemory();
     conn.execute(
       "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)",
@@ -18,8 +17,8 @@ describe("Rows - Result Set Operations", () => {
     ]);
   });
 
-  describe("rows.toJSON()", () => {
-    it("should convert rows to JSON representation", () => {
+  Deno.test("rows.toJSON()", async (t) => {
+    await t.step("should convert rows to JSON representation", () => {
       let json: unknown;
       conn.prepare("SELECT * FROM users", (stmt) => {
         const rows = stmt.query([]);
@@ -28,7 +27,7 @@ describe("Rows - Result Set Operations", () => {
       expect(json).toBeDefined();
     });
 
-    it("should return an array-like structure", () => {
+    await t.step("should return an array-like structure", () => {
       let json: unknown;
       conn.prepare("SELECT * FROM users", (stmt) => {
         const rows = stmt.query([]);
@@ -38,7 +37,7 @@ describe("Rows - Result Set Operations", () => {
       expect(() => JSON.stringify(json)).not.toThrow();
     });
 
-    it("should preserve row data", () => {
+    await t.step("should preserve row data", () => {
       let json: any;
       conn.prepare("SELECT name, age FROM users WHERE id = 1", (stmt) => {
         const rows = stmt.query([]);
@@ -49,7 +48,7 @@ describe("Rows - Result Set Operations", () => {
       expect(jsonStr).toContain("Alice");
     });
 
-    it("should handle empty result set", () => {
+    await t.step("should handle empty result set", () => {
       let json: unknown;
       conn.prepare("SELECT * FROM users WHERE id > ?", (stmt) => {
         const rows = stmt.query([999]);
@@ -58,7 +57,7 @@ describe("Rows - Result Set Operations", () => {
       expect(json).toBeDefined();
     });
 
-    it("should handle multiple rows", () => {
+    await t.step("should handle multiple rows", () => {
       let json: any;
       conn.prepare("SELECT name FROM users ORDER BY id", (stmt) => {
         const rows = stmt.query([]);
@@ -71,8 +70,8 @@ describe("Rows - Result Set Operations", () => {
     });
   });
 
-  describe("rows.get()", () => {
-    it("should return row at index 0", () => {
+  Deno.test("rows.get()", async (t) => {
+    await t.step("should return row at index 0", () => {
       let row: unknown;
       conn.prepare("SELECT * FROM users", (stmt) => {
         const rows = stmt.query([]);
@@ -82,7 +81,7 @@ describe("Rows - Result Set Operations", () => {
       expect(typeof row).toBe("object");
     });
 
-    it("should return row at specified index", () => {
+    await t.step("should return row at specified index", () => {
       let row1: unknown;
       let row2: unknown;
       conn.prepare("SELECT name FROM users ORDER BY id", (stmt) => {
@@ -94,7 +93,7 @@ describe("Rows - Result Set Operations", () => {
       expect(row2).toBeDefined();
     });
 
-    it("should return null for out of bounds index", () => {
+    await t.step("should return null for out of bounds index", () => {
       let row: unknown;
       conn.prepare("SELECT * FROM users", (stmt) => {
         const rows = stmt.query([]);
@@ -103,7 +102,7 @@ describe("Rows - Result Set Operations", () => {
       expect(row).toBeNull();
     });
 
-    it("should return null for negative index", () => {
+    await t.step("should return null for negative index", () => {
       let row: unknown;
       conn.prepare("SELECT * FROM users", (stmt) => {
         const rows = stmt.query([]);
@@ -112,7 +111,7 @@ describe("Rows - Result Set Operations", () => {
       expect(row).toBeNull();
     });
 
-    it("should allow accessing multiple rows", () => {
+    await t.step("should allow accessing multiple rows", () => {
       conn.prepare("SELECT id, name FROM users ORDER BY id", (stmt) => {
         const rows = stmt.query([]);
         const row0 = rows.get(0) as any;
@@ -125,7 +124,7 @@ describe("Rows - Result Set Operations", () => {
       });
     });
 
-    it("should return data consistent with iteration", () => {
+    await t.step("should return data consistent with iteration", () => {
       conn.prepare("SELECT id FROM users ORDER BY id", (stmt) => {
         const rows = stmt.query([]);
 
@@ -138,7 +137,7 @@ describe("Rows - Result Set Operations", () => {
       });
     });
 
-    it("should handle single row result", () => {
+    await t.step("should handle single row result", () => {
       let row: unknown;
       conn.prepare("SELECT * FROM users WHERE id = ?", (stmt) => {
         const rows = stmt.query([1]);
@@ -149,8 +148,8 @@ describe("Rows - Result Set Operations", () => {
     });
   });
 
-  describe("rows.iterate()", () => {
-    it("should return a RowIterator", () => {
+  Deno.test("rows.iterate()", async (t) => {
+    await t.step("should return a RowIterator", () => {
       let iterator: any;
       conn.prepare("SELECT * FROM users", (stmt) => {
         const rows = stmt.query([]);
@@ -159,7 +158,7 @@ describe("Rows - Result Set Operations", () => {
       expect(iterator).toBeDefined();
     });
 
-    it("should create an iterator with next() method", () => {
+    await t.step("should create an iterator with next() method", () => {
       conn.prepare("SELECT * FROM users", (stmt) => {
         const rows = stmt.query([]);
         const iterator = rows.iterate();
@@ -167,7 +166,7 @@ describe("Rows - Result Set Operations", () => {
       });
     });
 
-    it("should iterate over all rows", () => {
+    await t.step("should iterate over all rows", () => {
       conn.prepare("SELECT name FROM users ORDER BY id", (stmt) => {
         const rows = stmt.query([]);
         const iterator = rows.iterate();
@@ -186,7 +185,7 @@ describe("Rows - Result Set Operations", () => {
       });
     });
 
-    it("should handle empty result set iteration", () => {
+    await t.step("should handle empty result set iteration", () => {
       conn.prepare("SELECT * FROM users WHERE id > ?", (stmt) => {
         const rows = stmt.query([999]);
         const iterator = rows.iterate();
@@ -196,7 +195,7 @@ describe("Rows - Result Set Operations", () => {
       });
     });
 
-    it("should iterate once per row", () => {
+    await t.step("should iterate once per row", () => {
       conn.prepare("SELECT id FROM users", (stmt) => {
         const rows = stmt.query([]);
         const iterator = rows.iterate();
@@ -212,8 +211,8 @@ describe("Rows - Result Set Operations", () => {
     });
   });
 
-  describe("Rows - Integration", () => {
-    it("should provide multiple ways to access data", () => {
+  Deno.test("Rows - Integration", async (t) => {
+    await t.step("should provide multiple ways to access data", () => {
       conn.prepare("SELECT name FROM users ORDER BY id", (stmt) => {
         const rows = stmt.query([]);
 
@@ -232,7 +231,7 @@ describe("Rows - Result Set Operations", () => {
       });
     });
 
-    it("should handle large result sets", () => {
+    await t.step("should handle large result sets", () => {
       conn.execute("DELETE FROM users", []);
       for (let i = 0; i < 100; i++) {
         conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", [
@@ -259,4 +258,3 @@ describe("Rows - Result Set Operations", () => {
       });
     });
   });
-});
