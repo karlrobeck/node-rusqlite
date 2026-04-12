@@ -1,255 +1,112 @@
-# node-rusqlite Benchmarks
+# Benchmark Results
 
-Comprehensive performance benchmarks for node-rusqlite using Deno's native bench
-framework.
+## Latest Benchmark Results
 
-## Overview
+**System Information:**
+- CPU: AMD Ryzen 5 PRO 2400G with Radeon Vega Graphics
+- Runtime: Deno 2.7.12 (x86_64-unknown-linux-gnu)
 
-This benchmark suite measures the performance of node-rusqlite (napi-rs Rust
-binding to rusqlite) across various database operations and scenarios.
+### Results Table
 
-**Benchmark Categories:**
+| Operation | Library | Time/Iteration | Iterations/sec | Min | Max | p75 | p99 |
+|-----------|---------|---|---|---|---|---|---|
+| INSERT | node-rusqlite | 11.0 ms | 90.9 | 6.9 ms | 23.0 ms | 11.3 ms | 23.0 ms |
+| INSERT | node-sqlite | 9.2 ms | 108.5 | 6.5 ms | 11.9 ms | 10.4 ms | 11.9 ms |
+| **SELECT** | **node-rusqlite** | **153.1 µs** | **6,530** | **105.2 µs** | **294.9 µs** | **170.7 µs** | **294.9 µs** |
+| **SELECT** | **node-sqlite** | **58.8 µs** | **17,010** | **44.3 µs** | **114.1 µs** | **61.4 µs** | **114.1 µs** |
+| UPDATE | node-rusqlite | 10.1 ms | 99.0 | 5.8 ms | 14.1 ms | 11.1 ms | 14.1 ms |
+| UPDATE | node-sqlite | 9.5 ms | 105.2 | 5.5 ms | 12.0 ms | 10.4 ms | 12.0 ms |
+| DELETE | node-rusqlite | 9.7 ms | 102.9 | 5.9 ms | 17.1 ms | 10.6 ms | 17.1 ms |
+| DELETE | node-sqlite | 9.4 ms | 106.1 | 5.6 ms | 14.0 ms | 10.2 ms | 14.0 ms |
 
-1. **Basic CRUD** - INSERT, SELECT, UPDATE, DELETE operations
-2. **Prepared Statements** - Inline SQL vs prepared statement reuse
-3. **Transactions** - Different transaction behaviors (DEFERRED, IMMEDIATE,
-   EXCLUSIVE)
-4. **Bulk Operations** - Large dataset handling (50K+ rows)
-5. **Connection Modes** - File-based vs in-memory database performance
-6. **Concurrent Operations** - Multiple connections and access patterns
+### Summary
 
-## Running Benchmarks
+- **INSERT**: node-sqlite is 1.19x faster
+- **SELECT**: node-sqlite is 2.61x faster
+- **UPDATE**: node-sqlite is 1.06x faster
+- **DELETE**: node-sqlite is 1.03x faster
 
-### Run all benchmarks
+---
 
-```bash
-deno bench benchmark/*.bench.ts
-```
+## How to Run Benchmarks
 
-Or using the npm task:
+### Quick Start
 
-```bash
-deno task bench
-```
-
-### Run specific benchmark category
-
-```bash
-# CRUD operations
-deno task bench:crud
-
-# Prepared statements
-deno task bench:prepared
-
-# Transactions
-deno task bench:transactions
-
-# Bulk operations
-deno task bench:bulk
-
-# Connection modes
-deno task bench:connmodes
-
-# Concurrent operations
-deno task bench:concurrent
-```
-
-### Run individual benchmark file
+Run all benchmarks with:
 
 ```bash
-deno bench benchmark/basic-crud.bench.ts --filter "INSERT"
+deno bench -A benchmark/node.bench.ts
 ```
 
-## Understanding Results
+### Basic Commands
 
-Each benchmark displays:
-
-- **name** - Operation being tested
-- **baseline** - First test in each group (marked as baseline)
-- **ops/sec** - Operations per second
-- **avg** - Average time per operation
-- **min/max** - Minimum and maximum times
-
-Example output:
-
-```
-bench basic-crud ... measured 5 samples
-  INSERT single row (10K)                 time    149.87 ms  rate   66.72 ops/sec
-  SELECT by ID (10K)                      time    201.25 ms  rate   49.69 ops/sec
-  UPDATE (5K)                             time    150.40 ms  rate   66.43 ops/sec
-  DELETE (5K)                             time    135.22 ms  rate   73.95 ops/sec
-  SELECT with iteration (1000 rows)       time     45.32 ms  rate   22.07 ops/sec
+#### Run benchmarks with permissions
+```bash
+deno bench -A benchmark/node.bench.ts
 ```
 
-## Benchmark Details
+The `-A` flag grants all necessary permissions for file I/O and native bindings.
 
-### Basic CRUD (basic-crud.bench.ts)
-
-Tests fundamental database operations:
-
-- **INSERT single row** - 10K individual INSERT statements
-- **SELECT by ID** - 10K queries using WHERE id = ?
-- **UPDATE** - 5K update statements
-- **DELETE** - 5K delete statements
-- **SELECT with iteration** - Reading 1000 rows and iterating through them
-
-### Prepared Statements (prepared-statements.bench.ts)
-
-Compares prepared statement optimization:
-
-- **Inline SQL** - Fresh SQL parsing for each query
-- **Prepared statement reuse** - Compiled statement reused
-- **Multiple parameters** - Queries with 3+ parameter bindings
-- **LIKE queries** - Pattern matching performance
-
-### Transactions (transactions.bench.ts)
-
-Tests transaction performance and behaviors:
-
-- **No transaction** - Batch of 10K INSERTs without transaction (slow)
-- **DEFERRED** - Default transaction behavior (best for batches)
-- **IMMEDIATE** - Acquires lock immediately
-- **EXCLUSIVE** - Locks database exclusively
-- **Savepoint** - Nested transaction rollback
-
-### Bulk Operations (bulk-operations.bench.ts)
-
-Tests handling of large datasets:
-
-- **Bulk INSERT** - 50K rows in a single transaction
-- **Bulk SELECT and iterate** - Read and iterate 50K rows
-- **Bulk UPDATE** - Update 50K rows
-- **Aggregation queries** - COUNT, SUM, AVG with filtering
-
-### Connection Modes (connection-modes.bench.ts)
-
-Compares file-based vs in-memory databases:
-
-- **File-based INSERT** - Writes to disk (slower)
-- **In-memory INSERT** - RAM only (faster)
-- **File-based SELECT** - Disk reads (slower)
-- **In-memory SELECT** - RAM reads (faster)
-- **File vs memory UPDATE** - Transaction updates
-
-### Concurrent Operations (concurrent.bench.ts)
-
-Tests multiple connections and mixed workloads:
-
-- **Multiple connections** - 5 connections doing 1K ops each
-- **Concurrent reads** - 5 threads reading from same database
-- **Interleaved reads/writes** - 50/50 mix of reads and writes
-- **Heavy write contention** - 5K inserts in transaction
-
-## Performance Tips
-
-Based on these benchmarks, here are optimization patterns:
-
-### Use transactions for bulk operations
-
-```typescript
-conn.transaction((tx) => {
-  for (let i = 0; i < 50000; i++) {
-    tx.execute("INSERT INTO table VALUES (?)", [i]);
-  }
-});
+#### Run with specific filters
+```bash
+deno bench -A benchmark/node.bench.ts --filter "INSERT"
 ```
 
-**Impact**: ~50-100x faster than individual statements
+Filter for specific operations (INSERT, SELECT, UPDATE, DELETE, etc.)
 
-### Reuse prepared statements
-
-```typescript
-conn.prepare("SELECT * FROM table WHERE id = ?", (stmt) => {
-  for (let i = 0; i < 10000; i++) {
-    stmt.query([i]);
-  }
-});
+#### Run with custom iterations
+```bash
+deno bench -A benchmark/node.bench.ts --no-clear
 ```
 
-**Impact**: ~10-20% faster for repeated queries
+Keep results between runs without clearing.
 
-### Prefer in-memory databases for temporary data
+### Output Formats
 
-```typescript
-const temp = Connection.openInMemory();
-// ~50-100% faster than file-based
+#### As JSON
+```bash
+deno bench -A benchmark/node.bench.ts --json > results.json
 ```
 
-### Use DEFERRED transactions for reads
+Capture results as JSON for further analysis or visualization.
 
-```typescript
-conn.transaction((tx) => {
-  // Reads only, no lock until needed
-});
+#### With statistics
+```bash
+deno bench -A benchmark/node.bench.ts --unstable-v8-stats
 ```
 
-### Use IMMEDIATE for mixed workloads
+Include V8 engine statistics (if available).
 
-```typescript
-conn.transactionWithBehavior("Immediate", (tx) => {
-  // Reads and writes together
-});
+### Understanding the Output
+
+Each test group displays:
+
+| Column | Meaning |
+|--------|---------|
+| `benchmark` | Test name and library being tested |
+| `time/iter (avg)` | Average time per operation (ms or µs) |
+| `iter/s` | Operations per second |
+| `(min … max)` | Minimum and maximum time range |
+| `p75` | 75th percentile (3 out of 4 operations) |
+| `p99` | 99th percentile (99 out of 100 operations) |
+
+The summary shows relative performance comparison between libraries.
+
+### Advanced Usage
+
+#### Filter by exact benchmark name
+```bash
+deno bench -A benchmark/node.bench.ts --filter "node-rusqlite - INSERT"
 ```
 
-## Development
-
-### Adding new benchmarks
-
-Create a new `.bench.ts` file in the `benchmark/` directory:
-
-```typescript
-import { Connection } from "../bindings/binding.js";
-import { cleanupDb, getTempDbPath } from "./utils.ts";
-
-let dbPath = "";
-let conn: Connection;
-
-function setup() {
-  dbPath = getTempDbPath("my-bench");
-  conn = Connection.open(dbPath);
-  // Create schema
-}
-
-function teardown() {
-  cleanupDb(dbPath);
-}
-
-Deno.bench({
-  name: "My benchmark",
-  group: "My Group",
-  baseline: true,
-  fn() {
-    setup();
-    try {
-      // Benchmark code here
-    } finally {
-      teardown();
-    }
-  },
-});
+#### Run once (no warmup)
+```bash
+deno bench -A benchmark/node.bench.ts --allow-none
 ```
 
-### Utility functions
+#### Custom warmup runs
+```bash
+deno bench -A benchmark/node.bench.ts 2>&1 | head -20
+```
 
-Available from `./utils.ts`:
-
-- `getTempDbPath(name)` - Create temporary database file
-- `cleanupDb(path)` - Remove database file
-- `Timer` - High-resolution timer class
-- `captureMemory()` - Get heap memory snapshot
-- `memoryDelta()` - Calculate memory change
-- `generateTestUsers()` - Generate test data
-
-## Notes
-
-- Benchmarks run on `localhost` with no network I/O
-- Each benchmark runs multiple times (configurable via `--reps`)
-- Results vary based on system load and disk speed
-- File-based benchmarks use `/tmp` directory
-- In-memory benchmarks use RAM only
-
-## Further Reading
-
-- [Deno Benchmarking](https://docs.deno.com/runtime/reference/cli/bench/)
-- [node-rusqlite API](../bindings/binding.d.ts)
-- [rusqlite documentation](https://docs.rs/rusqlite/)
+View just the first 20 lines of output.
