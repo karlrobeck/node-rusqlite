@@ -1,6 +1,5 @@
 import { expect } from "@std/expect";
 import { Connection } from "../bindings/binding.js";
-import { afterEach } from "node:test";
 
 let conn: Connection;
 

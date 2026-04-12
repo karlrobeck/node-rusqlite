@@ -4,6 +4,14 @@
     "@std/expect": "jsr:@std/expect@^1.0.18"
   },
   "compilerOptions": {
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "lib": [
+      "deno.window",
+      "deno.unstable",
+      "node"
+    ],
+    "strict": true,
+    "types": ["bindings/binding.d.ts"]
   }
 }
