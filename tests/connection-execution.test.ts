@@ -1,180 +1,207 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from "bun:test"
-import { Connection } from "../bindings/binding"
+import { expect } from "@std/expect";
 
-describe("Connection - Query & Statement Execution", () => {
-  let conn: Connection
+// @ts-types="../bindings/binding.d.ts"
+import { Connection } from "../bindings/binding.js";
 
-  beforeAll(() => {
-    conn = Connection.openInMemory();
-  })
-  
-  // Create a test table
-  beforeEach(() => {
-    conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)", [])
-    conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", ["Alice", 30])
-    conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", ["Bob", 25])
-  })
+let conn: Connection;
 
-  afterEach(() => {
-    conn.execute("DROP TABLE users",[]);
-  })
+Deno.test.beforeAll(() => {
+  conn = Connection.openInMemory();
+});
 
-  describe("connection.execute()", () => {
-    it("should execute SQL with parameters", () => {
-      const rowsAffected = conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", ["Charlie", 35])
-      expect(typeof rowsAffected).toBe("number")
-      expect(rowsAffected).toBe(1)
-    })
+// Create a test table
+Deno.test.beforeEach(() => {
+  conn.execute(
+    "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)",
+    [],
+  );
+  conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", ["Alice", 30]);
+  conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", ["Bob", 25]);
+});
 
-    it("should execute SQL without parameters", () => {
-      const rowsAffected = conn.execute("DELETE FROM users WHERE age > 30", [])
-      expect(typeof rowsAffected).toBe("number")
-    })
+Deno.test.afterEach(() => {
+  conn.execute("DROP TABLE users", []);
+});
 
-    it("should handle UPDATE statements", () => {
-      const rowsAffected = conn.execute("UPDATE users SET age = ? WHERE name = ?", [31, "Alice"])
-      expect(rowsAffected).toBe(1)
-    })
+Deno.test("connection.execute()", async (t) => {
+  await t.step("should execute SQL with parameters", () => {
+    const rowsAffected = conn.execute(
+      "INSERT INTO users (name, age) VALUES (?, ?)",
+      ["Charlie", 35],
+    );
+    expect(typeof rowsAffected).toBe("number");
+    expect(rowsAffected).toBe(1);
+  });
 
-    it("should handle DELETE statements", () => {
-      const rowsAffected = conn.execute("DELETE FROM users WHERE name = ?", ["Bob"])
-      expect(rowsAffected).toBe(1)
-    })
-  })
+  await t.step("should execute SQL without parameters", () => {
+    const rowsAffected = conn.execute("DELETE FROM users WHERE age > 30", []);
+    expect(typeof rowsAffected).toBe("number");
+  });
 
-  describe("connection.executeBatch()", () => {
-    it("should execute multiple SQL statements", () => {
-      expect(() => {
-        conn.executeBatch("DELETE FROM users; INSERT INTO users (name, age) VALUES ('David', 40);")
-      }).not.toThrow()
-    })
+  await t.step("should handle UPDATE statements", () => {
+    const rowsAffected = conn.execute(
+      "UPDATE users SET age = ? WHERE name = ?",
+      [31, "Alice"],
+    );
+    expect(rowsAffected).toBe(1);
+  });
 
-    it("should handle empty batch", () => {
-      expect(() => {
-        conn.executeBatch("")
-      }).not.toThrow()
-    })
-  })
+  await t.step("should handle DELETE statements", () => {
+    const rowsAffected = conn.execute("DELETE FROM users WHERE name = ?", [
+      "Bob",
+    ]);
+    expect(rowsAffected).toBe(1);
+  });
+});
 
-  describe("connection.queryRow()", () => {
-    it("should return first matching row as object", () => {
-      const row = conn.queryRow("SELECT * FROM users WHERE age > ?", [25])
-      expect(row).toBeDefined()
-      expect(typeof row).toBe("object")
-      expect(row).toHaveProperty("id")
-      expect(row).toHaveProperty("name")
-      expect(row).toHaveProperty("age")
-    })
+Deno.test("connection.executeBatch()", async (t) => {
+  await t.step("should execute multiple SQL statements", () => {
+    expect(() => {
+      conn.executeBatch(
+        "DELETE FROM users; INSERT INTO users (name, age) VALUES ('David', 40);",
+      );
+    }).not.toThrow();
+  });
 
-    it("should handle empty parameters", () => {
-      const row = conn.queryRow("SELECT * FROM users LIMIT 1", [])
-      expect(row).toBeDefined()
-      expect(typeof row).toBe("object")
-    })
+  await t.step("should handle empty batch", () => {
+    expect(() => {
+      conn.executeBatch("");
+    }).not.toThrow();
+  });
+});
 
-    it("should work with WHERE clause", () => {
-      const row = conn.queryRow("SELECT * FROM users WHERE name = ?", ["Alice"])
-      expect(row).toBeDefined()
-      expect((row as any).name).toBe("Alice")
-    })
-  })
+Deno.test("connection.queryRow()", async (t) => {
+  await t.step("should return first matching row as object", () => {
+    const row = conn.queryRow("SELECT * FROM users WHERE age > ?", [25]);
+    expect(row).toBeDefined();
+    expect(typeof row).toBe("object");
+    expect(row).toHaveProperty("id");
+    expect(row).toHaveProperty("name");
+    expect(row).toHaveProperty("age");
+  });
 
-  describe("connection.queryOne()", () => {
-    it("should return single row as object", () => {
-      const row = conn.queryOne("SELECT * FROM users WHERE id = ?", [1])
-      expect(row).toBeDefined()
-      expect(typeof row).toBe("object")
-    })
+  await t.step("should handle empty parameters", () => {
+    const row = conn.queryRow("SELECT * FROM users LIMIT 1", []);
+    expect(row).toBeDefined();
+    expect(typeof row).toBe("object");
+  });
 
-    it.todo("should return first row if multiple exist", () => {
-      const row = conn.queryOne("SELECT * FROM users", [])
-      expect(row).toBeDefined()
-      expect(row).toHaveProperty("id")
-    })
-  })
+  await t.step("should work with WHERE clause", () => {
+    const row = conn.queryRow("SELECT * FROM users WHERE name = ?", [
+      "Alice",
+    ]);
+    expect(row).toBeDefined();
+    expect((row as any).name).toBe("Alice");
+  });
+});
 
-  describe("connection.prepare()", () => {
-    it("should prepare a statement and execute callback", () => {
-      let callbackCalled = false
-      conn.prepare("SELECT * FROM users WHERE id = ?", (stmt) => {
-        callbackCalled = true
-        expect(stmt).toBeDefined()
-        const result = stmt.query([1])
-        expect(result).toBeDefined()
-      })
-      expect(callbackCalled).toBe(true)
-    })
+Deno.test("connection.queryOne()", async (t) => {
+  await t.step("should return single row as object", () => {
+    const row = conn.queryOne("SELECT * FROM users WHERE id = ?", [1]);
+    expect(row).toBeDefined();
+    expect(typeof row).toBe("object");
+  });
 
-    it("should allow multiple prepares of same SQL", () => {
-      const sql = "SELECT * FROM users"
-      let callCount = 0
+  await t.step("should return first row if multiple exist", () => {
+    const row = conn.queryOne("SELECT * FROM users", []);
+    expect(row).toBeDefined();
+    expect(row).toHaveProperty("id");
+  });
+});
 
-      conn.prepare(sql, (_) => {
-        callCount++
-      })
-      conn.prepare(sql, (_) => {
-        callCount++
-      })
+Deno.test("connection.prepare()", async (t) => {
+  await t.step("should prepare a statement and execute callback", () => {
+    let callbackCalled = false;
+    conn.prepare("SELECT * FROM users WHERE id = ?", (stmt) => {
+      callbackCalled = true;
+      expect(stmt).toBeDefined();
+      const result = stmt.query([1]);
+      expect(result).toBeDefined();
+    });
+    expect(callbackCalled).toBe(true);
+  });
 
-      expect(callCount).toBe(2)
-    })
-  })
+  await t.step("should allow multiple prepares of same SQL", () => {
+    const sql = "SELECT * FROM users";
+    let callCount = 0;
 
-  describe("connection.prepareWithFlags()", () => {
-    it("should prepare with SQLite prepare flags", () => {
-      let callbackCalled = false
-      conn.prepareWithFlags("SELECT * FROM users", 1, (stmt) => {
-        callbackCalled = true
-        expect(stmt).toBeDefined()
-      })
-      expect(callbackCalled).toBe(true)
-    })
-  })
+    conn.prepare(sql, (_) => {
+      callCount++;
+    });
+    conn.prepare(sql, (_) => {
+      callCount++;
+    });
 
-  describe("connection.lastInsertRowid()", () => {
-    it("should return the last inserted rowid", () => {
-      conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", ["Eve", 28])
-      const rowid = conn.lastInsertRowid()
-      expect(typeof rowid).toBe("number")
-      expect(rowid).toBeGreaterThan(0)
-    })
+    expect(callCount).toBe(2);
+  });
+});
 
-    it("should update after each insert", () => {
-      conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", ["Frank", 45])
-      const rowid1 = conn.lastInsertRowid()
-      
-      conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", ["Grace", 33])
-      const rowid2 = conn.lastInsertRowid()
-      
-      expect(rowid2).toBeGreaterThan(rowid1)
-    })
-  })
+Deno.test("connection.prepareWithFlags()", async (t) => {
+  await t.step("should prepare with SQLite prepare flags", () => {
+    let callbackCalled = false;
+    conn.prepareWithFlags("SELECT * FROM users", 1, (stmt) => {
+      callbackCalled = true;
+      expect(stmt).toBeDefined();
+    });
+    expect(callbackCalled).toBe(true);
+  });
+});
 
-  describe("connection.changes()", () => {
-    it("should return number of rows affected by last statement", () => {
-      const changes = conn.changes()
-      expect(typeof changes).toBe("number")
-    })
+Deno.test("connection.lastInsertRowid()", async (t) => {
+  await t.step("should return the last inserted rowid", () => {
+    conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", ["Eve", 28]);
+    const rowid = conn.lastInsertRowid();
+    expect(typeof rowid).toBe("number");
+    expect(rowid).toBeGreaterThan(0);
+  });
 
-    it("should reflect changes from execute", () => {
-      conn.execute("UPDATE users SET age = ? WHERE age = ?", [26, 25])
-      const changes = conn.changes()
-      expect(changes).toBe(1)
-    })
-  })
+  await t.step("should update after each insert", () => {
+    conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", [
+      "Frank",
+      45,
+    ]);
+    const rowid1 = conn.lastInsertRowid();
 
-  describe("connection.totalChanges()", () => {
-    it("should return total changes since connection opened", () => {
-      const totalChanges = conn.totalChanges()
-      expect(typeof totalChanges).toBe("number")
-      expect(totalChanges).toBeGreaterThanOrEqual(2) // from beforeEach inserts
-    })
+    conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", [
+      "Grace",
+      33,
+    ]);
+    const rowid2 = conn.lastInsertRowid();
 
-    it("should increase with each modification", () => {
-      const before = conn.totalChanges()
-      conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", ["Henry", 50])
-      const after = conn.totalChanges()
-      expect(after).toBeGreaterThan(before)
-    })
-  })
-})
+    expect(rowid2).toBeGreaterThan(rowid1);
+  });
+});
+
+Deno.test("connection.changes()", async (t) => {
+  await t.step(
+    "should return number of rows affected by last statement",
+    () => {
+      const changes = conn.changes();
+      expect(typeof changes).toBe("number");
+    },
+  );
+
+  await t.step("should reflect changes from execute", () => {
+    conn.execute("UPDATE users SET age = ? WHERE age = ?", [26, 25]);
+    const changes = conn.changes();
+    expect(changes).toBe(1);
+  });
+});
+
+Deno.test("connection.totalChanges()", async (t) => {
+  await t.step("should return total changes since connection opened", () => {
+    const totalChanges = conn.totalChanges();
+    expect(typeof totalChanges).toBe("number");
+    expect(totalChanges).toBeGreaterThanOrEqual(2); // from beforeEach inserts
+  });
+
+  await t.step("should increase with each modification", () => {
+    const before = conn.totalChanges();
+    conn.execute("INSERT INTO users (name, age) VALUES (?, ?)", [
+      "Henry",
+      50,
+    ]);
+    const after = conn.totalChanges();
+    expect(after).toBeGreaterThan(before);
+  });
+});

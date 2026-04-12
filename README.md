@@ -2,9 +2,49 @@
 
 node sqlite library powered by `rusqlite` crate and `napi-rs`
 
+## Examples & Documentation
+
+Looking to learn how to use node-rusqlite? Check out the
+**[comprehensive examples](./examples/)** directory!
+
+### Learning Paths
+
+- **Beginner?** Start with
+  [Examples 1-4](./examples/README.md#beginner-new-to-sqlite--node-rusqlite) (2
+  hours)
+  - Basic connections, CRUD operations, prepared statements, transactions
+- **Intermediate?** Continue with
+  [Examples 5-11](./examples/README.md#intermediate-familiar-with-sql-learning-node-rusqlite)
+  (3 hours)
+  - Configuration, schema inspection, metadata, error handling
+- **Advanced?** Explore
+  [Examples 12-14](./examples/README.md#advanced-production-optimization--patterns)
+  (1.5 hours)
+  - Concurrent operations, performance tuning, best practices
+
+### Quick Links
+
+- 14 comprehensive examples covering all APIs: [./examples/](./examples/)
+- SQL schema patterns and templates:
+  [./examples/schema-reference.sql](./examples/schema-reference.sql)
+- Full examples README with learning paths:
+  [./examples/README.md](./examples/README.md)
+
+## Features
+
+- ✅ Type-safe Node.js bindings to SQLite via Rust
+- ✅ Prepared statements & parameterized queries
+- ✅ Transaction control with savepoints
+- ✅ Schema introspection & metadata
+- ✅ Performance profiling (statement status)
+- ✅ Configure via PRAGMA & DbConfig flags
+- ✅ Full-text search support
+- ✅ Memory optimization utilities
+
 ## Checklist
 
 **Connection**
+
 - default
   - [x] backup()
   - [x] restore()
@@ -39,7 +79,7 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
     - feature: limits
       - [ ] limit()
       - [ ] set_limit()
-  - [x] pragma() 
+  - [x] pragma()
   - [x] pragma_query_value()
   - [x] pragma_query()
   - [x] pragma_update()
@@ -95,6 +135,7 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
   - [x] is_interrupted
 
 **statement**
+
 - default
   - [x] column_names()
   - [x] column_count()
@@ -126,6 +167,7 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
   - [x] clear_bindings()
 
 **row** (with iterator)
+
 - default:
   - [-] get_unwrap()
   - [x] get()
@@ -134,6 +176,7 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
   - [-] get_pointer()
 
 **transaction**
+
 - default:
   - [-] new()
   - [-] new_unchecked()
@@ -146,11 +189,13 @@ node sqlite library powered by `rusqlite` crate and `napi-rs`
   - [x] finish()
 
 **column**
+
 - default:
   - [x] name()
   - [x] decl_type()
 
 **column_metadata**
+
 - default:
   - [x] name()
   - [x] database_name()

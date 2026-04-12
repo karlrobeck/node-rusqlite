@@ -314,7 +314,7 @@ impl ScopedConnection<'_> {
     env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-    pragma_value: Array,
+    pragma_value: Unknown,
     #[napi(ts_arg_type = "(value: Record<string, unknown>) => void")] callback: Function<
       Unknown<'_>,
     >,
@@ -356,7 +356,7 @@ impl ScopedConnection<'_> {
     env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-    pragma_value: Array,
+    pragma_value: Unknown,
   ) -> napi::Result<()> {
     let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
 
@@ -387,7 +387,7 @@ impl ScopedConnection<'_> {
     env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-    pragma_value: Array,
+    pragma_value: Unknown,
   ) -> napi::Result<Unknown<'_>> {
     let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
 
@@ -915,7 +915,7 @@ impl Connection {
     env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-    pragma_value: Array,
+    pragma_value: Unknown,
     #[napi(ts_arg_type = "(value:Record<string,unknown>) => void")] callback: Function<Unknown<'_>>,
   ) -> napi::Result<()> {
     let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
@@ -957,7 +957,7 @@ impl Connection {
     env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-    pragma_value: Array,
+    pragma_value: Unknown,
   ) -> napi::Result<()> {
     let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
 
@@ -988,7 +988,7 @@ impl Connection {
     env: Env,
     schema_name: Option<String>,
     pragma_name: String,
-    pragma_value: Array,
+    pragma_value: Unknown,
   ) -> napi::Result<Unknown<'_>> {
     let sql_value = env.from_js_value::<Value, _>(pragma_value)?;
 

@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ESNext",
     "strict": true,
-    "module": "CommonJS",
+    "module": "esnext",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "esModuleInterop": true,
@@ -10,8 +10,10 @@
     "noEmit": true,
     "allowSyntheticDefaultImports": true,
     "types": [
-      "bun"
-    ]
+      "bun",
+      "deno"
+    ],
+    "skipLibCheck": true
   },
   "include": [
     "."

@@ -100,7 +100,7 @@ export declare class Connection {
    * @param pragmaValue - The PRAGMA value to send.
    * @param callback - Called with the resulting PRAGMA row.
    */
-  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[], callback: (value:Record<string,unknown>) => void): void
+  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown, callback: (value:Record<string,unknown>) => void): void
   /**
    * Updates a PRAGMA value without returning the resulting row.
    *
@@ -108,7 +108,7 @@ export declare class Connection {
    * @param pragmaName - The PRAGMA name to execute.
    * @param pragmaValue - The PRAGMA value to send.
    */
-  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): Promise<void>
+  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown): Promise<void>
   /**
    * Updates a PRAGMA value and returns the resulting row as an object.
    *
@@ -117,7 +117,7 @@ export declare class Connection {
    * @param pragmaValue - The PRAGMA value to send.
    * @returns The resulting PRAGMA row as a JavaScript object.
    */
-  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): Record<string,unknown>
+  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown): Record<string,unknown>
   /**
    * Runs a transaction and commits on success or rolls back on error.
    *
@@ -269,7 +269,7 @@ export declare class Rows {
    * Converts the rows collection into a JavaScript value.
    * @returns A JavaScript representation of all rows.
    */
-  toJSON(): unknown
+  toJSON(): Record<string, unknown>[]
   /** Creates an iterator that yields each row one at a time. */
   iterate(): RowIterator
   /**
@@ -345,7 +345,7 @@ export declare class ScopedConnection {
    * @param pragmaValue - The PRAGMA value to send.
    * @param callback - Called with the resulting PRAGMA row.
    */
-  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[], callback: (value: Record<string, unknown>) => void): void
+  pragma(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown, callback: (value: Record<string, unknown>) => void): void
   /**
    * Updates a PRAGMA value without returning the resulting row.
    *
@@ -353,7 +353,7 @@ export declare class ScopedConnection {
    * @param pragmaName - The PRAGMA name to execute.
    * @param pragmaValue - The PRAGMA value to send.
    */
-  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): void
+  pragmaUpdate(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown): void
   /**
    * Updates a PRAGMA value and returns the resulting row as an object.
    *
@@ -362,7 +362,7 @@ export declare class ScopedConnection {
    * @param pragmaValue - The PRAGMA value to send.
    * @returns The resulting PRAGMA row as a JavaScript object.
    */
-  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown[]): Record<string,unknown>
+  pragmaUpdateAndCheck(schemaName: string | undefined | null, pragmaName: string, pragmaValue: unknown): Record<string,unknown>
   /**
    * Runs a transaction and commits on success or rolls back on error.
    *

@@ -1,0 +1,9 @@
+{
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1.0.19",
+    "@std/expect": "jsr:@std/expect@^1.0.18"
+  },
+  "compilerOptions": {
+    "skipLibCheck": true
+  }
+}

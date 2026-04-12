@@ -73,7 +73,7 @@ impl Rows {
 
   /// Converts the rows collection into a JavaScript value.
   /// @returns A JavaScript representation of all rows.
-  #[napi(js_name = "toJSON")]
+  #[napi(js_name = "toJSON", ts_return_type = "Record<string, unknown>[]")]
   pub fn to_json(&mut self, env: Env) -> napi::Result<Unknown<'_>> {
     env.to_js_value(&self.rows)
   }
