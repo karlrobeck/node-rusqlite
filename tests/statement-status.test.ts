@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test"
+import { describe, it, expect, beforeEach } from "bun:test"
 import { Connection, RusqliteStatementStatus } from "../bindings/binding"
 
 describe("Statement - Status", () => {
@@ -11,17 +11,6 @@ describe("Statement - Status", () => {
       conn.execute("INSERT INTO numbers (value) VALUES (?)", [i])
     }
   })
-
-  afterEach(() => {
-    try {
-      // Force finalization of pending statements
-      conn.execute("PRAGMA integrity_check", [])
-      conn.cacheFlush()
-    } catch (e) {
-      // Ignore errors during cleanup
-    }
-  })
-
 
   describe("statement.getStatus()", () => {
     it("should read FullscanStep status", () => {

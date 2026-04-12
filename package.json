@@ -47,7 +47,7 @@
     "format:rs": "cargo fmt",
     "lint": "oxlint .",
     "prepublishOnly": "napi prepublish -t npm",
-    "test": "ava",
+    "test": "ls tests/*.test.ts | while read file; do bun test \"$file\"; done",
     "preversion": "napi build --platform && git add .",
     "version": "napi version",
     "prepare": "husky"
