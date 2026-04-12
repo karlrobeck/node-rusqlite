@@ -56,7 +56,7 @@ Deno.test("connection.pragma()", async (t) => {
     let callbackCalled = false;
     let callbackValue: Record<string, unknown> | null = null;
 
-    conn.pragma(null, "journal_mode", [], (value) => {
+    conn.pragma(null, "journal_mode", undefined, (value) => {
       callbackCalled = true;
       callbackValue = value;
     });
@@ -69,7 +69,7 @@ Deno.test("connection.pragma()", async (t) => {
   await t.step("should pass result to callback with no pragma value", () => {
     let receivedResult: Record<string, unknown> | null = null;
 
-    conn.pragma(null, "journal_mode", [], (result) => {
+    conn.pragma(null, "journal_mode", undefined, (result) => {
       receivedResult = result;
     });
 
@@ -80,7 +80,7 @@ Deno.test("connection.pragma()", async (t) => {
   await t.step("should execute pragma callback synchronously", () => {
     let callbackExecuted = false;
 
-    conn.pragma(null, "cache_size", [], (result) => {
+    conn.pragma(null, "cache_size", undefined, (result) => {
       callbackExecuted = true;
       expect(result).toBeDefined();
     });
@@ -90,8 +90,8 @@ Deno.test("connection.pragma()", async (t) => {
 });
 
 Deno.test("connection.pragmaUpdate()", async (t) => {
-  await t.step("should return a Promise from pragmaUpdate", async () => {
-    const promise = conn.pragmaUpdate(null, "journal_mode", []);
+  await t.step("should return a Promise from pragmaUpdate", () => {
+    const promise = conn.pragmaUpdate(null, "journal_mode", undefined);
     // pragmaUpdate is async - should return a promise
     expect(typeof promise.then === "function").toBe(true);
   });

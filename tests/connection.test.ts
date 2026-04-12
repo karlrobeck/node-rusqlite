@@ -17,11 +17,11 @@ Deno.test("should open properly", () => {
   });
 
   expect(() => conn.queryOne("select sqlite_version()", [])).not
-    .toThrowError();
+    .toThrow();
 });
 
 Deno.test("should open in memory mode", () => {
   const conn = Connection.openInMemory();
   expect(() => conn.queryOne("select sqlite_version()", [])).not
-    .toThrowError();
+    .toThrow();
 });
