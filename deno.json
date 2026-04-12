@@ -5,21 +5,16 @@
     "format": "deno run -A npm:prettier . -w",
     "lint": "deno lint",
     "test": "deno test tests/*.test.ts",
-    "bench": "deno run -A npm:tinybench"
+    "bench": "deno bench benchmark/*.bench.ts",
+    "bench:crud": "deno bench benchmark/basic-crud.bench.ts",
+    "bench:prepared": "deno bench benchmark/prepared-statements.bench.ts",
+    "bench:transactions": "deno bench benchmark/transactions.bench.ts",
+    "bench:bulk": "deno bench benchmark/bulk-operations.bench.ts",
+    "bench:connmodes": "deno bench benchmark/connection-modes.bench.ts",
+    "bench:concurrent": "deno bench benchmark/concurrent.bench.ts"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@^1.0.19",
     "@std/expect": "jsr:@std/expect@^1.0.18"
-  },
-  "compilerOptions": {
-    "skipLibCheck": true,
-    "moduleResolution": "bundler",
-    "lib": [
-      "deno.window",
-      "deno.unstable",
-      "node"
-    ],
-    "strict": true,
-    "types": ["bindings/binding.d.ts"]
   }
 }

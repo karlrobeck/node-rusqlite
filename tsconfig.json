@@ -2,7 +2,8 @@
   "compilerOptions": {
     "target": "ESNext",
     "strict": true,
-    "module": "esnext",
+    "module": "preserve",
+    "moduleResolution": "bundler",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "esModuleInterop": true,
@@ -10,7 +11,6 @@
     "noEmit": true,
     "allowSyntheticDefaultImports": true,
     "types": [
-      "bun",
       "deno"
     ],
     "skipLibCheck": true
@@ -20,7 +20,6 @@
   ],
   "exclude": [
     "node_modules",
-    "bench",
     "__test__"
   ]
 }

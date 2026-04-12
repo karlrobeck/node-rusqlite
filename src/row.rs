@@ -112,19 +112,14 @@ pub struct RowIterator<'a> {
 
 #[napi]
 impl<'a> ScopedGenerator<'a> for RowIterator<'a> {
-  type Next = i64;
+  type Next = ();
   type Return = i64;
   type Yield = Unknown<'a>;
 
   /// Returns the next row from the iterator.
   /// @returns The next row as a JavaScript value, or `undefined` when iteration is complete.
-  fn next(&mut self, env: &'a napi::Env, value: Option<Self::Next>) -> Option<Self::Yield> {
-    let index = match value {
-      Some(index) => index as usize,
-      None => self.next,
-    };
-
-    let row = self.rows.get(index)?;
+  fn next(&mut self, env: &'a napi::Env, _value: Option<Self::Next>) -> Option<Self::Yield> {
+    let row = self.rows.get(self.next)?;
 
     self.next += 1;
 

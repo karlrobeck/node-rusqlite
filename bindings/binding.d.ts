@@ -258,9 +258,9 @@ export declare class InterruptHandle {
  * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods
  * @see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-6.html#iterator-helper-methods
  */
-export declare class RowIterator extends Iterator<unknown, number, number> {
+export declare class RowIterator extends Iterator<unknown, number, void> {
 
-  next(value?: number): IteratorResult<unknown, number>
+  next(value?: void): IteratorResult<unknown, number>
 }
 
 /** A collection of query result rows, stored in a JavaScript-friendly format. */
