@@ -1,5 +1,5 @@
 import { expect } from "@std/expect";
-import { Connection } from "../bindings/binding";
+import { Connection } from "../bindings/binding.js";
 
 let conn: Connection;
 

@@ -10,7 +10,7 @@
  * - Handle connection errors
  */
 
-import { Connection, OpenFlags } from "../bindings/binding";
+import { Connection, OpenFlags } from "../bindings/binding.js";
 
 // ============================================================================
 // BEGINNER: Basic Connection Patterns

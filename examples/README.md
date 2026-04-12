@@ -9,7 +9,7 @@ beginner through advanced usage patterns.
 All examples use the same pattern:
 
 ```typescript
-import { Connection } from "../bindings/binding";
+import { Connection } from "../bindings/binding.js";
 
 const db = Connection.open("./my-database.db");
 // or

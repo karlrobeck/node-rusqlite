@@ -12,7 +12,7 @@
  * - Getting the last inserted row ID
  */
 
-import { Connection } from "../bindings/binding";
+import { Connection } from "../bindings/binding.js";
 
 // ============================================================================
 // Setup: Table Definition and Sample Data

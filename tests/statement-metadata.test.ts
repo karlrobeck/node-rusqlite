@@ -1,5 +1,5 @@
 import { expect } from "@std/expect";
-// @ts-types="../bindings/binding.d.ts"
+
 import { Connection } from "../bindings/binding.js";
 
 let conn: Connection;

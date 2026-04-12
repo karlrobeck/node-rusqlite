@@ -582,7 +582,7 @@ export interface ConnectionOptions {
 }
 
 /** SQLite database configuration switches exposed to JavaScript. */
-export declare const enum DbConfig {
+export declare enum DbConfig {
   SqliteDbconfigEnableFkey = 1002,
   SqliteDbconfigEnableTrigger = 1003,
   SqliteDbconfigEnableFts3Tokenizer = 1004,
@@ -606,7 +606,7 @@ export declare const enum DbConfig {
 }
 
 /** What should happen when a transaction is dropped without being completed. */
-export declare const enum DropBehavior {
+export declare enum DropBehavior {
   /** Roll back the transaction on drop. */
   Rollback = 0,
   /** Commit the transaction on drop. */
@@ -618,7 +618,7 @@ export declare const enum DropBehavior {
 }
 
 /** Flags that control how a SQLite database is opened. */
-export declare const enum OpenFlags {
+export declare enum OpenFlags {
   SqliteOpenReadonly = 1,
   SqliteOpenReadwrite = 2,
   SqliteOpenCreate = 4,
@@ -670,7 +670,7 @@ export interface RusqliteDetailedColumnMetadata {
 }
 
 /** Flags that control how SQLite prepares SQL text. */
-export declare const enum RusqlitePrepFlags {
+export declare enum RusqlitePrepFlags {
   /** Keep the prepared statement around for reuse. */
   SqlitePreparePersistent = 1,
   /** Disable virtual table support while preparing. */
@@ -680,7 +680,7 @@ export declare const enum RusqlitePrepFlags {
 }
 
 /** Status counters that can be read from a prepared SQLite statement. */
-export declare const enum RusqliteStatementStatus {
+export declare enum RusqliteStatementStatus {
   /** Number of rows processed by a full table scan. */
   FullscanStep = 1,
   /** Number of sort operations performed. */
@@ -702,7 +702,7 @@ export declare const enum RusqliteStatementStatus {
 }
 
 /** How a transaction should begin. */
-export declare const enum TransactionBehavior {
+export declare enum TransactionBehavior {
   /** Begin the transaction only when needed. */
   Deferred = 0,
   /** Begin the transaction immediately. */
@@ -712,7 +712,7 @@ export declare const enum TransactionBehavior {
 }
 
 /** The current SQLite transaction state for a connection. */
-export declare const enum TransactionState {
+export declare enum TransactionState {
   /** No active transaction. */
   None = 0,
   /** An active read transaction. */
