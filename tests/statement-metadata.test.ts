@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test"
+import { describe, it, expect, beforeEach } from "bun:test"
 import { Connection } from "../bindings/binding"
 
 describe("Statement - Column Metadata", () => {
@@ -8,17 +8,6 @@ describe("Statement - Column Metadata", () => {
     conn = Connection.openInMemory()
     conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER, email TEXT)", [])
   })
-
-  afterEach(() => {
-    try {
-      // Force finalization of pending statements
-      conn.execute("PRAGMA integrity_check", [])
-      conn.cacheFlush()
-    } catch (e) {
-      // Ignore errors during cleanup
-    }
-  })
-
 
   describe("statement.columnNames()", () => {
     it("should return array of column names", () => {

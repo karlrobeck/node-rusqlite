@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from "bun:test"
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from "bun:test"
 import { Connection } from "../bindings/binding"
 
 describe("Connection - Query & Statement Execution", () => {
@@ -18,12 +18,6 @@ describe("Connection - Query & Statement Execution", () => {
   afterEach(() => {
     conn.execute("DROP TABLE users",[]);
   })
-
-  afterAll(async () => {
-    //@ts-expect-error
-    conn = null;
-  })
-
 
   describe("connection.execute()", () => {
     it("should execute SQL with parameters", () => {

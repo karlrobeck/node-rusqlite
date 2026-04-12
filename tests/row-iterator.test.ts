@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, beforeAll, afterAll } from "bun:test"
+import { describe, it, expect, beforeEach, beforeAll } from "bun:test"
 import { Connection } from "../bindings/binding"
 import { afterEach } from "node:test"
 
@@ -18,11 +18,6 @@ describe("RowIterator - Iterator Protocol", () => {
 
   afterEach(() => {
     conn.execute("DROP TABLE items",[])
-  })
-
-  afterAll(() => {
-    //@ts-expect-error
-    conn = null;
   })
 
   describe("iterator.next()", () => {
