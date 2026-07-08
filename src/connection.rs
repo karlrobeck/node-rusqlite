@@ -12,7 +12,7 @@ use crate::{
   errors::NodeRusqliteError,
   row::Value,
   statement::{RusqlitePrepFlags, ScopedStatement},
-  transaction::{TransactionBehavior, TransactionState},
+  transaction::{DropBehavior, Transaction, TransactionBehavior, TransactionState},
   utils::parse_rows,
 };
 
@@ -683,6 +683,17 @@ impl ScopedConnection<'_> {
   }
 }
 
+/// Options for creating a transaction.
+#[napi(object)]
+pub struct TransactionOptions {
+  /// The transaction behavior (Deferred, Immediate, Exclusive).
+  pub behavior: Option<TransactionBehavior>,
+  /// If true, skip compile-time nesting checks (always the case at the N-API layer).
+  pub unchecked: Option<bool>,
+  /// What to do when the transaction is dropped without explicit commit/rollback.
+  pub drop_behavior: Option<DropBehavior>,
+}
+
 #[napi]
 impl Connection {
   /// Opens a SQLite database at the given path.
@@ -1008,86 +1019,42 @@ impl Connection {
     env.to_js_value(&value)
   }
 
-  /// Runs a transaction and commits on success or rolls back on error.
+  /// Creates a new transaction and returns a Transaction handle.
   ///
-  /// @param callback - Called with a scoped connection inside the transaction.
-  #[napi(ts_args_type = "callback: (connection: ScopedConnection) => void")]
-  pub fn transaction(&mut self, callback: Function<ScopedConnection>) -> napi::Result<()> {
-    let transaction = self
+  /// Use `commit()` to persist changes, `rollback()` to revert.
+  /// If dropped without explicit commit/rollback, the `dropBehavior` setting
+  /// determines what happens (default: rollback).
+  ///
+  /// @param options - Optional transaction configuration.
+  /// @returns A new Transaction handle.
+  #[napi]
+  pub fn transaction(&self, options: Option<TransactionOptions>) -> napi::Result<Transaction<'_>> {
+    let behavior = options
+      .as_ref()
+      .and_then(|o| o.behavior.clone())
+      .unwrap_or(TransactionBehavior::Deferred);
+
+    let drop_behavior = match options.as_ref().and_then(|o| o.drop_behavior.clone()) {
+      Some(b) => b,
+      None => DropBehavior::Rollback,
+    };
+
+    let query = match behavior {
+      TransactionBehavior::Deferred => "BEGIN DEFERRED",
+      TransactionBehavior::Immediate => "BEGIN IMMEDIATE",
+      TransactionBehavior::Exclusive => "BEGIN EXCLUSIVE",
+    };
+
+    self
       .connection
-      .transaction()
+      .execute_batch(query)
       .map_err(NodeRusqliteError::from)?;
 
-    let deref_conn = transaction.deref();
-
-    let scoped = ScopedConnection {
-      connection: deref_conn,
-    };
-
-    match callback.call(scoped) {
-      Ok(_) => transaction.commit().map_err(NodeRusqliteError::from)?,
-      Err(_) => transaction.rollback().map_err(NodeRusqliteError::from)?,
-    }
-
-    Ok(())
-  }
-
-  /// Runs a transaction with the specified behavior.
-  ///
-  /// @param behavior - The transaction behavior to use.
-  /// @param callback - Called with a scoped connection inside the transaction.
-  #[napi(
-    ts_args_type = "behavior: TransactionBehavior, callback: (connection: ScopedConnection) => void"
-  )]
-  pub fn transaction_with_behavior(
-    &mut self,
-    behavior: TransactionBehavior,
-    callback: Function<ScopedConnection>,
-  ) -> napi::Result<()> {
-    let transaction = self
-      .connection
-      .transaction_with_behavior(behavior.into())
-      .map_err(NodeRusqliteError::from)?;
-
-    let deref_conn = transaction.deref();
-
-    let scoped = ScopedConnection {
-      connection: deref_conn,
-    };
-
-    match callback.call(scoped) {
-      Ok(_) => transaction.commit().map_err(NodeRusqliteError::from)?,
-      Err(_) => transaction.rollback().map_err(NodeRusqliteError::from)?,
-    };
-
-    Ok(())
-  }
-
-  /// Runs a transaction without extra checks and commits or rolls back based on the callback.
-  ///
-  /// @param callback - Called with a scoped connection inside the transaction.
-  #[napi(ts_args_type = "callback: (connection: ScopedConnection) => void")]
-  pub fn unchecked_transaction(
-    &mut self,
-    callback: Function<ScopedConnection>,
-  ) -> napi::Result<()> {
-    let transaction = self
-      .connection
-      .unchecked_transaction()
-      .map_err(NodeRusqliteError::from)?;
-
-    let deref_conn = transaction.deref();
-
-    let scoped = ScopedConnection {
-      connection: deref_conn,
-    };
-
-    match callback.call(scoped) {
-      Ok(_) => transaction.commit().map_err(NodeRusqliteError::from)?,
-      Err(_) => transaction.rollback().map_err(NodeRusqliteError::from)?,
-    };
-
-    Ok(())
+    Ok(Transaction {
+      conn: &self.connection,
+      drop_behavior: drop_behavior.into(),
+      finished: false,
+    })
   }
 
   /// Runs a savepoint and commits on success or rolls back on error.

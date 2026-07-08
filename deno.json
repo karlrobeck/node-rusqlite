@@ -1,4 +1,5 @@
 {
+  "nodeModulesDir": "auto",
   "tasks": {
     "build": "napi build --platform --release",
     "build:debug": "napi build --platform -o bindings --js binding.js --esm --dts binding.d.ts",
