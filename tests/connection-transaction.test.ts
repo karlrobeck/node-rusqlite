@@ -23,8 +23,11 @@ Deno.test("transaction basic commit", () => {
   tx.execute("INSERT INTO accounts (balance) VALUES (300)", []);
   tx.commit();
 
-  const count = conn.queryRow("SELECT COUNT(*) as count FROM accounts", []);
-  expect((count as any).count).toBe(3);
+  const count = conn.queryRow(
+    "SELECT COUNT(*) as count FROM accounts",
+    [],
+  ) as Record<string, number>;
+  expect(count.count).toBe(3);
 });
 
 Deno.test("transaction explicit rollback", () => {
@@ -32,8 +35,12 @@ Deno.test("transaction explicit rollback", () => {
   tx.execute("INSERT INTO accounts (balance) VALUES (300)", []);
   tx.rollback();
 
-  const count = conn.queryRow("SELECT COUNT(*) as count FROM accounts", []);
-  expect((count as any).count).toBe(2);
+  const count = conn.queryRow(
+    "SELECT COUNT(*) as count FROM accounts",
+    [],
+  ) as Record<string, number>;
+
+  expect(count.count).toBe(2);
 });
 
 Deno.test("transaction double commit guard", () => {
@@ -53,8 +60,11 @@ Deno.test("transaction DropBehavior.Commit auto-commits via dispose()", () => {
   tx.execute("INSERT INTO accounts (balance) VALUES (300)", []);
   tx.dispose();
 
-  const count = conn.queryRow("SELECT COUNT(*) as count FROM accounts", []);
-  expect((count as any).count).toBe(3);
+  const count = conn.queryRow(
+    "SELECT COUNT(*) as count FROM accounts",
+    [],
+  ) as Record<string, number>;
+  expect(count.count).toBe(3);
 });
 
 Deno.test("transaction dispose() with default behavior rolls back", () => {
@@ -62,8 +72,11 @@ Deno.test("transaction dispose() with default behavior rolls back", () => {
   tx.execute("INSERT INTO accounts (balance) VALUES (300)", []);
   tx.dispose();
 
-  const count = conn.queryRow("SELECT COUNT(*) as count FROM accounts", []);
-  expect((count as any).count).toBe(2);
+  const count = conn.queryRow(
+    "SELECT COUNT(*) as count FROM accounts",
+    [],
+  ) as Record<string, number>;
+  expect(count.count).toBe(2);
 });
 
 Deno.test("transaction dropBehavior / setDropBehavior accessors", () => {
@@ -91,8 +104,12 @@ Deno.test("transaction delegated executeBatch", () => {
   tx.executeBatch("INSERT INTO accounts (balance) VALUES (300)");
   tx.commit();
 
-  const count = conn.queryRow("SELECT COUNT(*) as count FROM accounts", []);
-  expect((count as any).count).toBe(3);
+  const count = conn.queryRow(
+    "SELECT COUNT(*) as count FROM accounts",
+    [],
+  ) as Record<string, number>;
+
+  expect(count.count).toBe(3);
 });
 
 Deno.test("transaction delegated changes", () => {
@@ -118,15 +135,25 @@ Deno.test("transaction delegated isAutocommit", () => {
 
 Deno.test("transaction delegated queryRow", () => {
   const tx = conn.transaction();
-  const row = tx.queryRow("SELECT * FROM accounts WHERE id = 1", []);
-  expect((row as any).balance).toBe(100);
+
+  const row = tx.queryRow("SELECT * FROM accounts WHERE id = 1", []) as Record<
+    string,
+    number
+  >;
+
+  expect(row.balance).toBe(100);
   tx.rollback();
 });
 
 Deno.test("transaction delegated queryOne", () => {
   const tx = conn.transaction();
-  const row = tx.queryOne("SELECT * FROM accounts WHERE id = 1", []);
-  expect((row as any).balance).toBe(100);
+
+  const row = tx.queryOne("SELECT * FROM accounts WHERE id = 1", []) as Record<
+    string,
+    number
+  >;
+
+  expect(row.balance).toBe(100);
   tx.rollback();
 });
 
